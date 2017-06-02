@@ -16,8 +16,8 @@ public class GsgpRun extends GpRun {
 	protected boolean buildIndividuals;
 	protected boolean seedInitialization;
 
-	public GsgpRun(Data data) {
-		super(data);
+	public GsgpRun(Data data, boolean interleavedSampling) {
+		super(data, interleavedSampling);
 	}
 
 	protected void initialize() {

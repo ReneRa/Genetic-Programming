@@ -30,23 +30,18 @@ public class Main {
 	public static int[][] depths = new int[NUMBER_OF_RUNS][NUMBER_OF_GENERATIONS+1];
 	public static int CURRENT_RUN;
 	
-	protected static boolean seedInitialization = true;
-	protected static boolean seedMutatedInitialization = true;
+	protected static boolean seedInitialization = false;
+	protected static boolean seedMutatedInitialization = false;
 	protected static int numberOfSeedIterations = 100;
 	protected static double percentageOfSeedIndividuals = 5.0;
 	protected static String executableAlgorithm = "GP"; // Either GP or GSGP
+	
+	protected static boolean interleavedSampling = true;
 
 	public static void main(String[] args) {
 
 		// load training and unseen data
 		Data data = loadData(DATA_FILENAME);
-		GpRun seedGP = new GpRun(data);
-		
-		Population seedPopulation = new Population();
-		if(seedInitialization == true){
-			seedGP.evolve(numberOfSeedIterations);
-			seedPopulation = seedGP.getPopulation();
-		}
 		
 		// run GP for a given number of runs
 		double[][] resultsPerRun = new double[4][NUMBER_OF_RUNS];
@@ -55,28 +50,35 @@ public class Main {
 			CURRENT_RUN = i;
 			
 			Individual bestFound = new Individual();
-			// GsgpRun gp = new GsgpRun(data);
+			
 			
 			if(seedInitialization == false){
 				if(executableAlgorithm.equals("GP")){
-					GpRun gp = new GpRun(data);
-					gp.setMaximumDepth(15);
+					GpRun gp = new GpRun(data, interleavedSampling);
 					bestFound = gp.evolve(NUMBER_OF_GENERATIONS);
 				}
 				else if(executableAlgorithm.equals("GSGP")){
-					GsgpRun gsgp = new GsgpRun(data);
+					GsgpRun gsgp = new GsgpRun(data, interleavedSampling);
 					bestFound = gsgp.evolve(NUMBER_OF_GENERATIONS);
 				}
 			}
 			else{
 				if(executableAlgorithm.equals("GP")){
-					GpRun gp = new GpRun(data);
+					GpRun seedGP = new GpRun(data, interleavedSampling);
+					Population seedPopulation = new Population();
+					seedGP.evolve(numberOfSeedIterations);
+					seedPopulation = seedGP.getPopulation();
+					GpRun gp = new GpRun(data, interleavedSampling);
 					if(seedMutatedInitialization == true){gp.population = getMutatedSeededPopulation(gp, data, seedPopulation);}
 					else{gp.population = getSeededPopulation(seedPopulation, gp.getPopulation());}
 					bestFound = gp.evolve(NUMBER_OF_GENERATIONS);
 				}
 				else if(executableAlgorithm.equals("GSGP")){
-					GsgpRun gsgp = new GsgpRun(data);
+					GpRun seedGP = new GpRun(data, interleavedSampling);
+					Population seedPopulation = new Population();
+					seedGP.evolve(numberOfSeedIterations);
+					seedPopulation = seedGP.getPopulation();
+					GsgpRun gsgp = new GsgpRun(data, interleavedSampling);
 					if(seedMutatedInitialization == true){gsgp.population = getMutatedSeededPopulation(gsgp, data, seedPopulation);}
 					else{gsgp.population = getSeededPopulation(seedPopulation, gsgp.getPopulation());}
 					bestFound = gsgp.evolve(NUMBER_OF_GENERATIONS);

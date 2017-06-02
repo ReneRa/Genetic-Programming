@@ -2,6 +2,7 @@ package core;
 
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Random;
 
 import programElements.Addition;
@@ -13,6 +14,7 @@ import programElements.Operator;
 import programElements.ProgramElement;
 import programElements.ProtectedDivision;
 import programElements.Subtraction;
+import utils.Utils;
 
 public class GpRun implements Serializable {
 
@@ -20,6 +22,7 @@ public class GpRun implements Serializable {
 
 	// ##### parameters #####
 	protected Data data;
+	protected double[][] originalTrainingData;
 	protected ArrayList<ProgramElement> functionSet, terminalSet, fullSet;
 	protected int populationSize;
 	protected boolean applyDepthLimit;
@@ -32,9 +35,13 @@ public class GpRun implements Serializable {
 	protected int currentGeneration;
 	protected Population population;
 	protected Individual currentBest;
+	protected boolean interleavedSampling;
+	protected double chooseSingleSubSampleProbability;
 
-	public GpRun(Data data) {
+	public GpRun(Data data, boolean interleavedSampling) {
 		this.data = data;
+		this.originalTrainingData = data.getTrainingData();
+		this.interleavedSampling = interleavedSampling;
 		initialize();
 	}
 
@@ -45,7 +52,12 @@ public class GpRun implements Serializable {
 		functionSet.add(new Subtraction());
 		functionSet.add(new Multiplication());
 		functionSet.add(new ProtectedDivision());
-
+		
+		chooseSingleSubSampleProbability = 0.5;
+		randomGenerator = new Random();
+		
+		if(this.interleavedSampling == true){data.trainingData = getSubSample(originalTrainingData, chooseSingleSubSampleProbability);}
+		
 		// adds all the constants to the terminal set
 		terminalSet = new ArrayList<ProgramElement>();
 		double[] constants = { -1.0, -0.75, -0.5, -0.25, 0.0, 0.25, 0.5, 0.75, 1.0 };
@@ -73,7 +85,6 @@ public class GpRun implements Serializable {
 		crossoverProbability = 0.9;
 		printAtEachGeneration = true;
 
-		randomGenerator = new Random();
 		currentGeneration = 0;
 
 		// initialize and evaluate population
@@ -86,6 +97,26 @@ public class GpRun implements Serializable {
 		printState();
 		storeValues();
 		currentGeneration++;
+	}
+	
+	// Returns a sub selection of the training data, used for cross validation
+	public double[][] getSubSample(double[][] originalTrainingData, double chooseSingleSubSampleProbability) {
+		if(randomGenerator.nextDouble() < chooseSingleSubSampleProbability){
+			return originalTrainingData;
+		}
+		else{
+			double[][] trainingSubSample;
+			
+			List<Integer> instances = Utils.shuffleInstances(originalTrainingData.length);
+			int subSampleInstances = (int) Math.ceil(0.6 * originalTrainingData.length);
+	
+			trainingSubSample = new double[subSampleInstances][];
+	
+			for (int i = 0; i < subSampleInstances; i++) {
+				trainingSubSample[i] = originalTrainingData[instances.get(i)];
+			}
+			return trainingSubSample;
+		}
 	}
 	
 	// Store values so they can be written to a file later for plotting purposes
@@ -175,6 +206,7 @@ public class GpRun implements Serializable {
 
 		// evolve for a given number of generations
 		while (currentGeneration <= numberOfGenerations) {
+			if(this.interleavedSampling == true){data.trainingData = getSubSample(originalTrainingData, this.chooseSingleSubSampleProbability);}
 			Population offspring = new Population();
 
 			// generate a new offspring population
