@@ -7,6 +7,7 @@ import java.util.Random;
 import programElements.Addition;
 import programElements.Constant;
 import programElements.InputVariable;
+import programElements.LogisticFunction;
 import programElements.Multiplication;
 import programElements.Operator;
 import programElements.ProgramElement;
@@ -38,7 +39,6 @@ public class GpRun implements Serializable {
 	}
 
 	protected void initialize() {
-
 		// adds all the functions to the function set
 		functionSet = new ArrayList<ProgramElement>();
 		functionSet.add(new Addition());
@@ -378,4 +378,5 @@ public class GpRun implements Serializable {
 	public void setPrintAtEachGeneration(boolean printAtEachGeneration) {
 		this.printAtEachGeneration = printAtEachGeneration;
 	}
+	
 }

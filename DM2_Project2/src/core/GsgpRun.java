@@ -14,6 +14,7 @@ public class GsgpRun extends GpRun {
 	protected double mutationStep;
 	protected boolean boundedMutation;
 	protected boolean buildIndividuals;
+	protected boolean seedInitialization;
 
 	public GsgpRun(Data data) {
 		super(data);

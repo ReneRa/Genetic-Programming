@@ -21,33 +21,70 @@ public class Main {
 
 	public static final String DATA_FILENAME = "dataset";
 
-	public static final int NUMBER_OF_RUNS = 2;
-	public static final int NUMBER_OF_GENERATIONS = 100;
+	public static final int NUMBER_OF_RUNS = 10;
+	public static final int NUMBER_OF_GENERATIONS = 2000;
 	
 	public static double[][] trainingErrors = new double[NUMBER_OF_RUNS][NUMBER_OF_GENERATIONS+1];
 	public static double[][] unseenErrors = new double[NUMBER_OF_RUNS][NUMBER_OF_GENERATIONS+1];
 	public static int[][] sizes = new int[NUMBER_OF_RUNS][NUMBER_OF_GENERATIONS+1];
 	public static int[][] depths = new int[NUMBER_OF_RUNS][NUMBER_OF_GENERATIONS+1];
 	public static int CURRENT_RUN;
+	
+	protected static boolean seedInitialization = true;
+	protected static boolean seedMutatedInitialization = true;
+	protected static int numberOfSeedIterations = 100;
+	protected static double percentageOfSeedIndividuals = 5.0;
+	protected static String executableAlgorithm = "GP"; // Either GP or GSGP
 
 	public static void main(String[] args) {
 
 		// load training and unseen data
 		Data data = loadData(DATA_FILENAME);
-
+		GpRun seedGP = new GpRun(data);
+		
+		Population seedPopulation = new Population();
+		if(seedInitialization == true){
+			seedGP.evolve(numberOfSeedIterations);
+			seedPopulation = seedGP.getPopulation();
+		}
+		
 		// run GP for a given number of runs
 		double[][] resultsPerRun = new double[4][NUMBER_OF_RUNS];
 		for (int i = 0; i < NUMBER_OF_RUNS; i++) {
 			System.out.printf("\n\t\t##### Run %d #####\n", i + 1);
 			CURRENT_RUN = i;
 			
-			GpRun gp = new GpRun(data);
-
-			//GsgpRun gp = new GsgpRun(data);
+			Individual bestFound = new Individual();
+			// GsgpRun gp = new GsgpRun(data);
+			
+			if(seedInitialization == false){
+				if(executableAlgorithm.equals("GP")){
+					GpRun gp = new GpRun(data);
+					gp.setMaximumDepth(15);
+					bestFound = gp.evolve(NUMBER_OF_GENERATIONS);
+				}
+				else if(executableAlgorithm.equals("GSGP")){
+					GsgpRun gsgp = new GsgpRun(data);
+					bestFound = gsgp.evolve(NUMBER_OF_GENERATIONS);
+				}
+			}
+			else{
+				if(executableAlgorithm.equals("GP")){
+					GpRun gp = new GpRun(data);
+					if(seedMutatedInitialization == true){gp.population = getMutatedSeededPopulation(gp, data, seedPopulation);}
+					else{gp.population = getSeededPopulation(seedPopulation, gp.getPopulation());}
+					bestFound = gp.evolve(NUMBER_OF_GENERATIONS);
+				}
+				else if(executableAlgorithm.equals("GSGP")){
+					GsgpRun gsgp = new GsgpRun(data);
+					if(seedMutatedInitialization == true){gsgp.population = getMutatedSeededPopulation(gsgp, data, seedPopulation);}
+					else{gsgp.population = getSeededPopulation(seedPopulation, gsgp.getPopulation());}
+					bestFound = gsgp.evolve(NUMBER_OF_GENERATIONS);
+				}
+			}
 			// gp.setBuildIndividuals(true);
 			// gp.setBoundedMutation(true);
 
-			Individual bestFound = gp.evolve(NUMBER_OF_GENERATIONS);
 
 			resultsPerRun[0][i] = bestFound.getTrainingError();
 			resultsPerRun[1][i] = bestFound.getUnseenError();
@@ -75,6 +112,57 @@ public class Main {
 		}
 	}
 	
+	// Seeds the initial population with the best individual from the initial population and it's mutations
+	private static Population getMutatedSeededPopulation(GpRun gp, Data data, Population seedPopulation){
+		Population population = new Population();
+		Individual bestIndividual = seedPopulation.getBest();
+		
+		population.addIndividual(bestIndividual);
+		
+		for(int i = 1; i < gp.getPopulationSize(); i++){
+			population.addIndividual(gp.applyStandardMutation(bestIndividual));
+			population.getIndividual(i).evaluate(data);
+		}
+		
+		return population;
+	}
+	
+	private static Population getMutatedSeededPopulation(GsgpRun gsgp, Data data, Population seedPopulation){
+		Population population = new Population();
+		Individual bestIndividual = seedPopulation.getBest();
+		
+		population.addIndividual(bestIndividual);
+		
+		for(int i = 1; i < gsgp.getPopulationSize(); i++){
+			population.addIndividual(gsgp.applyStandardMutation(bestIndividual));
+			population.getIndividual(i).evaluate(data);
+		}
+		
+		return population;
+	}
+	
+	// Replaces the worst individuals from the gsgp population with the best from the seed individuals.
+	private static Population getSeededPopulation(Population seedPopulation, Population gsgpPopulation) {
+		int amountOfSeededIndividuals = (int) Math.round(gsgpPopulation.getSize() * (percentageOfSeedIndividuals/100));
+		
+		// Get the best individuals from the GP run that will be used as seed
+		ArrayList<Individual> seedIndividuals = seedPopulation.getBestIndividuals(amountOfSeededIndividuals);
+		// Get the best individuals from the GSGP run that will make up the rest of the population
+		ArrayList<Individual> bestGSGPIndividuals = gsgpPopulation.getBestIndividuals(gsgpPopulation.getSize() - amountOfSeededIndividuals);
+		
+		Population population = new Population();
+		
+		// Add the seed individuals and the gsgp individuals to the population respectively
+		for(int i = 0; i < seedIndividuals.size(); i ++){
+			population.addIndividual(seedIndividuals.get(i));
+		}
+		for(int i = 0; i < bestGSGPIndividuals.size(); i ++){
+			population.addIndividual(bestGSGPIndividuals.get(i));
+		}
+		return population;
+		
+	}
+
 	// Saves average data from runs over all generations to a file. 
 	// This allows analysis of the results through plotting the results
 	private static void saveDataToFile() throws IOException {
