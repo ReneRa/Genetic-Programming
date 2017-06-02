@@ -98,8 +98,8 @@ public class GpRun implements Serializable {
 		printAtEachGeneration = true;
 		mutationOperator = 1;
 		maxNumberOfMutations = 0.05; 
-		runsWithoutImprovement = 0;
-		maxRunsWithoutImprovements = (int) Math.round(Main.NUMBER_OF_GENERATIONS * 0.1);
+		runsWithoutImprovement = 0;		// you can turn it off by changing % of generations to 1
+		maxRunsWithoutImprovements = (int) Math.round(Main.NUMBER_OF_GENERATIONS * 1);
 
 		currentGeneration = 0;
 
@@ -206,7 +206,7 @@ public class GpRun implements Serializable {
 			individual.addProgramElement(randomTerminal);
 		} else {
 			// equal probability of adding a terminal or an operator
-			// run for 0.9 and 0.1
+
 			
 			if (randomGenerator.nextDouble() < probToGrowOperator) {
 				Operator randomOperator = (Operator) functionSet.get(randomGenerator.nextInt(functionSet.size()));
@@ -247,12 +247,12 @@ public class GpRun implements Serializable {
 					// apply mutation
 					// if (randomGenerator.nextDouble() < mutationProbability) 
 					else {
-						if (p1.getSize() < 300000 ) {
+//						if (p1.getSize() < 300000 ) {
 							newIndividual = applyStandardMutation(p1);
 		//					newIndividual = applyNodeFlipMutation(p1);							
-						} else {
-							newIndividual = applyConstantMutation(p1);
-						}
+//						} else {
+//							newIndividual = applyConstantMutation(p1);
+//						}
 						
 					}
 				}
