@@ -13,6 +13,10 @@ public class Constant extends Terminal {
 	public double getValue() {
 		return value;
 	}
+	
+	public void setValue(Double newValue) {
+		this.value = newValue;
+	}
 
 	public String toString() {
 		return "C" + value;

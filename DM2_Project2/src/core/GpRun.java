@@ -24,13 +24,22 @@ public class GpRun implements Serializable {
 	protected boolean applyDepthLimit;
 	protected int maximumDepth;
 	protected double crossoverProbability;
+	protected double mutationProbability;
 	protected boolean printAtEachGeneration;
+	protected double probToGrowOperator;
+	protected int mutationOperator;
+	protected int maxRunsWithoutImprovements;
+	
 
 	// ##### state #####
 	protected Random randomGenerator;
 	protected int currentGeneration;
 	protected Population population;
 	protected Individual currentBest;
+	protected Individual globalBest;
+	protected int constantsLength;
+	protected double maxNumberOfMutations;
+	protected int runsWithoutImprovement;
 
 	public GpRun(Data data) {
 		this.data = data;
@@ -49,7 +58,8 @@ public class GpRun implements Serializable {
 		// adds all the constants to the terminal set
 		terminalSet = new ArrayList<ProgramElement>();
 		double[] constants = { -1.0, -0.75, -0.5, -0.25, 0.0, 0.25, 0.5, 0.75, 1.0 };
-		for (int i = 0; i < constants.length; i++) {
+		constantsLength = constants.length;
+		for (int i = 0; i < constantsLength; i++) {
 			terminalSet.add(new Constant(constants[i]));
 		}
 
@@ -71,7 +81,13 @@ public class GpRun implements Serializable {
 		applyDepthLimit = true;
 		maximumDepth = 17;
 		crossoverProbability = 0.9;
+		mutationProbability = 0.1;
+		probToGrowOperator = 0.5;
 		printAtEachGeneration = true;
+		mutationOperator = 1;
+		maxNumberOfMutations = 0.05; 
+		runsWithoutImprovement = 0;
+		maxRunsWithoutImprovements = (int) Math.round(Main.NUMBER_OF_GENERATIONS * 0.1);
 
 		randomGenerator = new Random();
 		currentGeneration = 0;
@@ -83,6 +99,7 @@ public class GpRun implements Serializable {
 		}
 
 		updateCurrentBest();
+		globalBest = getCurrentBest();
 		printState();
 		storeValues();
 		currentGeneration++;
@@ -147,22 +164,24 @@ public class GpRun implements Serializable {
 
 	protected Individual grow(int maximumTreeDepth) {
 		Individual individual = new Individual();
-		growInner(individual, 0, maximumTreeDepth);
+		growInner(individual, 0, maximumTreeDepth, probToGrowOperator);
 		individual.calculateDepth();
 		return individual;
 	}
 
-	protected void growInner(Individual individual, int currentDepth, int maximumTreeDepth) {
+	protected void growInner(Individual individual, int currentDepth, int maximumTreeDepth, double probToGrowOperator) {
 		if (currentDepth == maximumTreeDepth) {
 			ProgramElement randomTerminal = terminalSet.get(randomGenerator.nextInt(terminalSet.size()));
 			individual.addProgramElement(randomTerminal);
 		} else {
 			// equal probability of adding a terminal or an operator
-			if (randomGenerator.nextBoolean()) {
+			// run for 0.9 and 0.1
+			
+			if (randomGenerator.nextDouble() < probToGrowOperator) {
 				Operator randomOperator = (Operator) functionSet.get(randomGenerator.nextInt(functionSet.size()));
 				individual.addProgramElement(randomOperator);
 				for (int i = 0; i < randomOperator.getArity(); i++) {
-					growInner(individual, currentDepth + 1, maximumTreeDepth);
+					growInner(individual, currentDepth + 1, maximumTreeDepth, probToGrowOperator);
 				}
 			} else {
 				ProgramElement randomTerminal = terminalSet.get(randomGenerator.nextInt(terminalSet.size()));
@@ -172,25 +191,39 @@ public class GpRun implements Serializable {
 	}
 
 	public Individual evolve(int numberOfGenerations) {
-
+		
+		// alternative stopping criteria
+		boolean stopCriteria = false;
+		
 		// evolve for a given number of generations
-		while (currentGeneration <= numberOfGenerations) {
+		while (currentGeneration <= numberOfGenerations && !stopCriteria) {
 			Population offspring = new Population();
-
+			
 			// generate a new offspring population
 			while (offspring.getSize() < population.getSize()) {
 				Individual p1, newIndividual;
 				p1 = selectParent();
 				// apply crossover
-				if (randomGenerator.nextDouble() < crossoverProbability) {
-					Individual p2 = selectParent();
-					newIndividual = applyStandardCrossover(p1, p2);
+				if (randomGenerator.nextDouble() < 1 - crossoverProbability - mutationProbability) {
+					//	apply reproduction
+						newIndividual = p1.deepCopy();
+				} else { 
+					if (randomGenerator.nextDouble() < crossoverProbability / (crossoverProbability + mutationProbability)) {
+						Individual p2 = selectParent();
+						newIndividual = applyStandardCrossover(p1, p2);
+					}
+					// apply mutation
+					// if (randomGenerator.nextDouble() < mutationProbability) 
+					else {
+						if (p1.getSize() < 300 ) {
+							newIndividual = applyStandardMutation(p1);
+		//					newIndividual = applyNodeFlipMutation(p1);							
+						} else {
+							newIndividual = applyConstantMutation(p1);
+						}
+						
+					}
 				}
-				// apply mutation
-				else {
-					newIndividual = applyStandardMutation(p1);
-				}
-
 				/*
 				 * add the new individual to the offspring population if its
 				 * depth is not higher than the maximum (applicable only if the
@@ -209,9 +242,9 @@ public class GpRun implements Serializable {
 			printState();
 			storeValues();
 			currentGeneration++;
+			stopCriteria = updateStopCriteria(getCurrentBest(), getGlobalBest());
 		}
-
-		return getCurrentBest();
+		return getGlobalBest();
 	}
 
 	protected void printState() {
@@ -223,10 +256,30 @@ public class GpRun implements Serializable {
 		}
 	}
 
+	protected boolean updateStopCriteria(Individual currentBest, Individual globalBest) {
+		// check if the current best individual is better than the best overall
+//		if (currentBest.trainingError < globalBest.trainingError) {
+//			runsWithoutImprovement = 0;
+//			globalBest = currentBest;
+//			
+		if (currentBest.getAbsErrorDiff() < globalBest.getAbsErrorDiff()) {	
+			runsWithoutImprovement = 0;
+			updateGlobalBest(currentBest);
+		} else {
+			runsWithoutImprovement++;
+		}
+		// check if maximum number of runs without improvements has been reached
+		if (runsWithoutImprovement > maxRunsWithoutImprovements) {
+			return true;
+		} else {		
+			return false;
+		}
+	}
+	
 	// tournament selection
 	protected Individual selectParent() {
 		Population tournamentPopulation = new Population();
-		int tournamentSize = (int) (0.05 * population.getSize());
+		int tournamentSize = (int) (0.1 * population.getSize());
 		for (int i = 0; i < tournamentSize; i++) {
 			int index = randomGenerator.nextInt(population.getSize());
 			tournamentPopulation.addIndividual(population.getIndividual(index));
@@ -269,6 +322,69 @@ public class GpRun implements Serializable {
 		return offspring;
 	}
 
+	protected Individual applyNodeFlipMutation(Individual p) {
+
+		Individual offspring = p.deepCopy();
+		double nodeMutProb = 0.05;
+		int curMutations = 0;
+		int i = 0;
+		// go over each node and mutate it with a pre-specified probability
+		while (i < offspring.getSize() || curMutations <= Math.round(maxNumberOfMutations * offspring.getSize() + 5)) {
+			
+			if (randomGenerator.nextDouble() < nodeMutProb){
+				i = randomGenerator.nextInt(offspring.getSize());
+				ProgramElement elementAtI = offspring.getProgramElementAtIndex(i);
+				
+				if (elementAtI instanceof InputVariable) {
+					ProgramElement newNodeElement = terminalSet.get(randomGenerator.nextInt(terminalSet.size() - constantsLength) + constantsLength);
+					offspring.setProgramElementAtIndex(newNodeElement, i);
+				} else if (elementAtI instanceof Constant) {
+					ProgramElement newNodeElement = terminalSet.get(randomGenerator.nextInt(constantsLength));
+					offspring.setProgramElementAtIndex(newNodeElement, i);
+				} else {
+					Operator operator = (Operator) offspring.getProgramElementAtIndex(i);
+					int ar = operator.getArity();
+					Operator newOp = (Operator) functionSet.get(randomGenerator.nextInt(functionSet.size()));
+					while (!(ar == newOp.getArity())) {
+						newOp = (Operator) functionSet.get(randomGenerator.nextInt(functionSet.size()));
+					}
+					offspring.setProgramElementAtIndex(newOp, i);
+				}
+				
+				curMutations++;
+			}
+			i++;
+		}
+		offspring.calculateDepth();
+		return offspring;
+	}
+	
+	protected Individual applyShrinkMutation(Individual p) {
+		// select a random node in the tree and mutate it into a terminal (deleting the subtree under that node)
+		int mutationPoint = randomGenerator.nextInt(p.getSize());
+		int parentElementsToEnd = p.countElementsToEnd(mutationPoint);
+		Individual offspring = p.selectiveDeepCopy(mutationPoint, mutationPoint + parentElementsToEnd - 1);
+		ProgramElement randTerm = terminalSet.get(randomGenerator.nextInt(terminalSet.size()));
+		offspring.setProgramElementAtIndex(randTerm, mutationPoint);
+		
+		return offspring;
+	}
+	
+	protected Individual applyConstantMutation(Individual p) {
+		// add gaussian noise to a constant
+		int mutationPoint = randomGenerator.nextInt(p.getSize());
+		Individual offspring = p.deepCopy();
+		ProgramElement elementAtMP = offspring.getProgramElementAtIndex(mutationPoint);
+		while (!(elementAtMP instanceof Constant)) {
+			mutationPoint = randomGenerator.nextInt(offspring.getSize());
+			elementAtMP = offspring.getProgramElementAtIndex(mutationPoint);
+		}
+		Constant c = (Constant) offspring.getProgramElementAtIndex(mutationPoint);
+		c.setValue(c.getValue() + randomGenerator.nextGaussian() * c.getValue()); 
+		offspring.setProgramElementAtIndex((ProgramElement)c, mutationPoint); 
+		return offspring;
+	}
+	
 	// keep the best overall + all the remaining offsprings
 	protected Population selectSurvivors(Population newIndividuals) {
 		Population survivors = new Population();
@@ -296,11 +412,19 @@ public class GpRun implements Serializable {
 	protected void updateCurrentBest() {
 		currentBest = population.getBest();
 	}
+	
+	protected void updateGlobalBest(Individual i) {
+		globalBest = i;
+	}
 
 	// ##### get's and set's from here on #####
 
 	public Individual getCurrentBest() {
 		return currentBest;
+	}
+	
+	public Individual getGlobalBest() {
+		return globalBest;
 	}
 
 	public ArrayList<ProgramElement> getFunctionSet() {

@@ -19,7 +19,7 @@ public class Individual implements Serializable {
 	protected long id;
 	protected ArrayList<ProgramElement> program;
 	protected int depth;
-	protected double trainingError, unseenError;
+	protected double trainingError, unseenError, absDiffTrUnError;
 	protected double[] trainingDataOutputs, unseenDataOutputs;
 
 	protected int evaluateIndex;
@@ -42,6 +42,7 @@ public class Individual implements Serializable {
 	public void evaluate(Data data) {
 		evaluateOnTrainingData(data);
 		evaluateOnUnseenData(data);
+		absDiffTrUnError = Math.abs(this.unseenError - this.trainingError);
 	}
 
 	public double[] evaluateOnTrainingData(Data data) {
@@ -206,6 +207,10 @@ public class Individual implements Serializable {
 		return unseenError;
 	}
 
+	public double getAbsErrorDiff() {
+		return absDiffTrUnError;
+	}
+	
 	public double[] getTrainingDataOutputs() {
 		return trainingDataOutputs;
 	}

@@ -21,9 +21,11 @@ public class Main {
 
 	public static final String DATA_FILENAME = "dataset";
 
-	public static final int NUMBER_OF_RUNS = 2;
-	public static final int NUMBER_OF_GENERATIONS = 100;
+	public static final int NUMBER_OF_RUNS = 30;
+	public static final int NUMBER_OF_GENERATIONS = 2000;
 	
+	public static Population bestIndividualAtGenerations = new Population();
+	public static int[] stopAtGen = new int[NUMBER_OF_RUNS];
 	public static double[][] trainingErrors = new double[NUMBER_OF_RUNS][NUMBER_OF_GENERATIONS+1];
 	public static double[][] unseenErrors = new double[NUMBER_OF_RUNS][NUMBER_OF_GENERATIONS+1];
 	public static int[][] sizes = new int[NUMBER_OF_RUNS][NUMBER_OF_GENERATIONS+1];
@@ -43,9 +45,9 @@ public class Main {
 			
 			GpRun gp = new GpRun(data);
 
-			//GsgpRun gp = new GsgpRun(data);
-			// gp.setBuildIndividuals(true);
-			// gp.setBoundedMutation(true);
+//			GsgpRun gp = new GsgpRun(data);
+//			gp.setBuildIndividuals(true);
+//			gp.setBoundedMutation(true);
 
 			Individual bestFound = gp.evolve(NUMBER_OF_GENERATIONS);
 
