@@ -276,7 +276,7 @@ public class GpRun implements Serializable {
 			currentGeneration++;
 			stopCriteria = updateStopCriteria(getCurrentBest(), getGlobalBest());
 		}
-		return getGlobalBest();
+		return getCurrentBest();		//		return getGlobalBest();		
 	}
 
 	protected void printState() {
