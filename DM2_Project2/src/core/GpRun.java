@@ -247,7 +247,7 @@ public class GpRun implements Serializable {
 					// apply mutation
 					// if (randomGenerator.nextDouble() < mutationProbability) 
 					else {
-						if (p1.getSize() < 300 ) {
+						if (p1.getSize() < 300000 ) {
 							newIndividual = applyStandardMutation(p1);
 		//					newIndividual = applyNodeFlipMutation(p1);							
 						} else {
@@ -311,7 +311,7 @@ public class GpRun implements Serializable {
 	// tournament selection
 	protected Individual selectParent() {
 		Population tournamentPopulation = new Population();
-		int tournamentSize = (int) (0.1 * population.getSize());
+		int tournamentSize = (int) (0.05 * population.getSize());
 		for (int i = 0; i < tournamentSize; i++) {
 			int index = randomGenerator.nextInt(population.getSize());
 			tournamentPopulation.addIndividual(population.getIndividual(index));
