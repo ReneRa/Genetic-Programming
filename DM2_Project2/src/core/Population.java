@@ -2,6 +2,7 @@ package core;
 
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.List;
 
 public class Population implements Serializable {
 
@@ -27,6 +28,28 @@ public class Population implements Serializable {
 			}
 		}
 		return bestIndex;
+	}
+	
+	// Returns the best N to be used as a seed population
+	public ArrayList<Individual> getBestIndividuals(int n){
+		ArrayList<Individual> bestIndividuals = new ArrayList<Individual>();
+		ArrayList<Individual> tempPopulation = individuals;
+		
+		for(int i = 0; i < n; i++){
+			int bestIndex = 0;
+			double bestTrainingError = tempPopulation.get(bestIndex).getTrainingError();
+			for (int j = 1; j < tempPopulation.size(); j++) {
+				if (tempPopulation.get(j).getTrainingError() < bestTrainingError) {
+					bestTrainingError = tempPopulation.get(j).getTrainingError();
+					bestIndex = j;
+				}
+			}
+			bestIndividuals.add(tempPopulation.get(bestIndex));
+			tempPopulation.remove(bestIndex);
+			
+		}
+		
+		return bestIndividuals;
 	}
 
 	public void addIndividual(Individual individual) {
