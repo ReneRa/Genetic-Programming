@@ -12,7 +12,7 @@ import programElements.LogisticFunction;
 import programElements.Multiplication;
 import programElements.Operator;
 import programElements.ProgramElement;
-import programElements.ProtectedDivision;
+import programElements.ProtectedDivision;import programElements.Exp;import programElements.Expm1;import programElements.LogisticFunction;import programElements.randDiv;import programElements.randMult;import programElements.aSquare;
 import programElements.Subtraction;import programElements.Terminal;import utils.Utils;
 
 public class GpRun implements Serializable {
@@ -59,8 +59,7 @@ public class GpRun implements Serializable {
 		functionSet.add(new Addition());
 		functionSet.add(new Subtraction());
 		functionSet.add(new Multiplication());
-		functionSet.add(new ProtectedDivision());
-		
+		//functionSet.add(new ProtectedDivision());				//functionSet.add(new Exp());				//functionSet.add(new Expm1());				//functionSet.add(new LogisticFunction());				//functionSet.add(new randDiv());				//functionSet.add(new randMult());				//functionSet.add(new aSquare());
 		chooseSingleSubSampleProbability = 0.5;
 		randomGenerator = new Random();
 		
@@ -230,14 +229,13 @@ public class GpRun implements Serializable {
 			Population offspring = new Population();
 			// generate a new offspring population
 			while (offspring.getSize() < population.getSize()) {
-				Individual p1, newIndividual, newIndividual1 = null, newIndividual2 = null;
+				Individual p1, newIndividual = null, newIndividual1 = null, newIndividual2 = null;
 				p1 = selectParent();				Individual p2 = selectParent();
 				// apply crossover
 				if (randomGenerator.nextDouble() < 1 - crossoverProbability - mutationProbability) {
 					//	apply reproduction
 						newIndividual = p1.deepCopy();						} 						//DELETED THE ELSE STATEMENT
-				else if (randomGenerator.nextDouble() < crossoverProbability / (crossoverProbability + mutationProbability)) {
-						newIndividual = applyStandardCrossover(p1, p2);						Individual[] Individuals;						switch(Main.selectedCrossoverMethod) {							case "uniformCrossover":								Individuals = uniformCrossover(p1, p2);								newIndividual1 = Individuals[0];								newIndividual2 = Individuals[1];								break;							case "onePointCrossover":								Individuals = onePointCrossover(p1, p2);								newIndividual1 = Individuals[0];								newIndividual2 = Individuals[1];								break;							case "standardCrossover":								newIndividual = applyStandardCrossover(p1, p2);								break;						}											}
+				else if (randomGenerator.nextDouble() < crossoverProbability / (crossoverProbability + mutationProbability)) {						Individual[] Individuals;						switch(Main.selectedCrossoverMethod) {							case "uniformCrossover":								Individuals = uniformCrossover(p1, p2);								newIndividual1 = Individuals[0];								newIndividual2 = Individuals[1];								break;							case "onePointCrossover":								Individuals = onePointCrossover(p1, p2);								newIndividual1 = Individuals[0];								newIndividual2 = Individuals[1];								break;							case "standardCrossover":								newIndividual = applyStandardCrossover(p1, p2);								break;						}}
 					// apply mutation
 					// if (randomGenerator.nextDouble() < mutationProbability) 
 				else {

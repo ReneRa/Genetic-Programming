@@ -22,7 +22,7 @@ public class Main {
 	public static final String DATA_FILENAME = "dataset";
 
 	public static final int NUMBER_OF_RUNS = 10;
-	public static final int NUMBER_OF_GENERATIONS = 2000;
+	public static final int NUMBER_OF_GENERATIONS = 500;
 	
 	public static Population bestIndividualAtGenerations = new Population();
 	public static int[] stopAtGen = new int[NUMBER_OF_RUNS];
