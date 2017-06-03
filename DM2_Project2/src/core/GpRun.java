@@ -17,6 +17,7 @@ import utils.Utils;
 
 public class GpRun implements Serializable {
 	private static final long serialVersionUID = 7L;
+
 	// ##### parameters #####
 	protected Data data;
 	protected double[][] originalTrainingData;
@@ -30,6 +31,7 @@ public class GpRun implements Serializable {
 	protected double probToGrowOperator;
 	protected int mutationOperator;
 	protected int maxRunsWithoutImprovements;
+
 	// ##### state #####
 	protected Random randomGenerator;
 	protected int currentGeneration;
@@ -40,7 +42,8 @@ public class GpRun implements Serializable {
 	protected double maxNumberOfMutations;
 	protected int runsWithoutImprovement;
 	protected boolean interleavedSampling;
-	protected double chooseSingleSubSampleProbability;
+	protected double chooseSingleSubSampleProbability = 0.5;
+	protected double subSampleSize = 0.35;
 
 	public GpRun(Data data, boolean interleavedSampling) {
 		this.data = data;
@@ -62,7 +65,6 @@ public class GpRun implements Serializable {
 		// functionSet.add(new randDiv());
 		// functionSet.add(new randMult());
 		// functionSet.add(new aSquare());
-		chooseSingleSubSampleProbability = 0.5;
 		randomGenerator = new Random();
 		if (this.interleavedSampling == true) {
 			data.trainingData = getSubSample(originalTrainingData, chooseSingleSubSampleProbability);

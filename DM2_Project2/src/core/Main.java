@@ -17,34 +17,44 @@ import utils.Utils;
 public class Main {
 	public static final boolean SHUFFLE_AND_SPLIT = true;
 	// public static final boolean SHUFFLE_AND_SPLIT = false;
+
 	public static final String DATA_FILENAME = "dataset";
 	public static final int NUMBER_OF_RUNS = 10;
 	public static final int NUMBER_OF_GENERATIONS = 500;
 	public static Population bestIndividualAtGenerations = new Population();
+
 	public static int[] stopAtGen = new int[NUMBER_OF_RUNS];
 	public static double[][] trainingErrors = new double[NUMBER_OF_RUNS][NUMBER_OF_GENERATIONS + 1];
 	public static double[][] unseenErrors = new double[NUMBER_OF_RUNS][NUMBER_OF_GENERATIONS + 1];
 	public static int[][] sizes = new int[NUMBER_OF_RUNS][NUMBER_OF_GENERATIONS + 1];
 	public static int[][] depths = new int[NUMBER_OF_RUNS][NUMBER_OF_GENERATIONS + 1];
+
 	public static int CURRENT_RUN;
+
 	protected static boolean seedInitialization = false;
 	protected static boolean seedMutatedInitialization = false;
 	protected static int numberOfSeedIterations = 100;
 	protected static double percentageOfSeedIndividuals = 5.0;
 	protected static String executableAlgorithm = "GP"; // Either GP or GSGP
 	protected static boolean interleavedSampling = true;
+
+	protected static String dataFileName = "CHANGE THIS TO THE DESIRED FILE NAME BEFORE RUNNING. EAT CARROTS.";
+
 	// uniformCrossover,onePointCrossover,standardCrossover;
 	public static final String selectedCrossoverMethod = "standardCrossover";
 
 	public static void main(String[] args) {
-		// load training and unseen data
-		Data data = loadData(DATA_FILENAME);
+
 		// run GP for a given number of runs
 		double[][] resultsPerRun = new double[4][NUMBER_OF_RUNS];
 		for (int i = 0; i < NUMBER_OF_RUNS; i++) {
+			// load training and unseen data
+			Data data = loadData(DATA_FILENAME);
 			System.out.printf("\n\t\t##### Run %d #####\n", i + 1);
 			CURRENT_RUN = i;
+
 			Individual bestFound = new Individual();
+
 			if (seedInitialization == false) {
 				if (executableAlgorithm.equals("GP")) {
 					GpRun gp = new GpRun(data, interleavedSampling);
@@ -82,6 +92,7 @@ public class Main {
 			}
 			// gp.setBuildIndividuals(true);
 			// gp.setBoundedMutation(true);
+
 			resultsPerRun[0][i] = bestFound.getTrainingError();
 			resultsPerRun[1][i] = bestFound.getUnseenError();
 			resultsPerRun[2][i] = bestFound.getSize();
@@ -92,12 +103,14 @@ public class Main {
 			// write individual to object file
 			bestFound.writeToObjectFile();
 		}
+
 		// present average results
 		System.out.printf("\n\t\t##### Results #####\n\n");
 		System.out.printf("Average training error:\t\t%.2f\n", Utils.getAverage(resultsPerRun[0]));
 		System.out.printf("Average unseen error:\t\t%.2f\n", Utils.getAverage(resultsPerRun[1]));
 		System.out.printf("Average size:\t\t\t%.2f\n", Utils.getAverage(resultsPerRun[2]));
 		System.out.printf("Average depth:\t\t\t%.2f\n", Utils.getAverage(resultsPerRun[3]));
+
 		try {
 			saveDataToFile();
 		} catch (IOException e) {
@@ -111,22 +124,28 @@ public class Main {
 	private static Population getMutatedSeededPopulation(GpRun gp, Data data, Population seedPopulation) {
 		Population population = new Population();
 		Individual bestIndividual = seedPopulation.getBest();
+
 		population.addIndividual(bestIndividual);
+
 		for (int i = 1; i < gp.getPopulationSize(); i++) {
 			population.addIndividual(gp.applyStandardMutation(bestIndividual));
 			population.getIndividual(i).evaluate(data);
 		}
+
 		return population;
 	}
 
 	private static Population getMutatedSeededPopulation(GsgpRun gsgp, Data data, Population seedPopulation) {
 		Population population = new Population();
 		Individual bestIndividual = seedPopulation.getBest();
+
 		population.addIndividual(bestIndividual);
+
 		for (int i = 1; i < gsgp.getPopulationSize(); i++) {
 			population.addIndividual(gsgp.applyStandardMutation(bestIndividual));
 			population.getIndividual(i).evaluate(data);
 		}
+
 		return population;
 	}
 
@@ -135,13 +154,16 @@ public class Main {
 	private static Population getSeededPopulation(Population seedPopulation, Population gsgpPopulation) {
 		int amountOfSeededIndividuals = (int) Math
 				.round(gsgpPopulation.getSize() * (percentageOfSeedIndividuals / 100));
+
 		// Get the best individuals from the GP run that will be used as seed
 		ArrayList<Individual> seedIndividuals = seedPopulation.getBestIndividuals(amountOfSeededIndividuals);
 		// Get the best individuals from the GSGP run that will make up the rest
 		// of the population
 		ArrayList<Individual> bestGSGPIndividuals = gsgpPopulation
 				.getBestIndividuals(gsgpPopulation.getSize() - amountOfSeededIndividuals);
+
 		Population population = new Population();
+
 		// Add the seed individuals and the gsgp individuals to the population
 		// respectively
 		for (int i = 0; i < seedIndividuals.size(); i++) {
@@ -151,6 +173,7 @@ public class Main {
 			population.addIndividual(bestGSGPIndividuals.get(i));
 		}
 		return population;
+
 	}
 
 	// Saves average data from runs over all generations to a file.
@@ -160,31 +183,39 @@ public class Main {
 		double[] avgUnseenErrorAr = new double[NUMBER_OF_GENERATIONS];
 		int[] avgSizeAr = new int[NUMBER_OF_GENERATIONS];
 		int[] avgDepthAr = new int[NUMBER_OF_GENERATIONS];
+
 		for (int generation = 0; generation < NUMBER_OF_GENERATIONS; generation++) {
 			double avgTrainingError = 0.0;
 			double avgUnseenError = 0.0;
 			int avgSize = 0;
 			int avgDepth = 0;
+
 			for (int run = 0; run < NUMBER_OF_RUNS; run++) {
 				avgTrainingError += trainingErrors[run][generation];
 				avgUnseenError += unseenErrors[run][generation];
 				avgSize += sizes[run][generation];
 				avgDepth += depths[run][generation];
 			}
+
 			avgTrainingErrorAr[generation] = avgTrainingError / NUMBER_OF_RUNS;
 			avgUnseenErrorAr[generation] = avgUnseenError / NUMBER_OF_RUNS;
 			avgSizeAr[generation] = avgSize / NUMBER_OF_RUNS;
 			avgDepthAr[generation] = avgDepth / NUMBER_OF_RUNS;
 		}
 		String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(Calendar.getInstance().getTime());
-		File file = new File("data/" + timeStamp + ".txt");
+
+		File file = new File("data/" + dataFileName + ".txt");
+
 		// if file doesn't exists, then create it
 		if (!file.exists()) {
 			file.createNewFile();
 		}
+
 		FileWriter fw = new FileWriter(file.getAbsoluteFile());
 		BufferedWriter bw = new BufferedWriter(fw);
+
 		bw.write("Generation \t Training Error \t Unseen Error \t Size \t Depth \n");
+
 		for (int i = 0; i < Main.NUMBER_OF_GENERATIONS; i++) {
 			bw.write(i + "\t" + String.valueOf(avgTrainingErrorAr[i]).replace('.', ',') + "\t"
 					+ String.valueOf(avgUnseenErrorAr[i]).replace('.', ',') + "\t" + String.valueOf(avgSizeAr[i]) + "\t"
@@ -194,20 +225,25 @@ public class Main {
 			}
 		}
 		bw.close();
+
 	}
 
 	public static Data loadData(String dataFilename) {
 		double[][] trainingData, unseenData;
+
 		if (SHUFFLE_AND_SPLIT) {
 			double[][] allData = readData(dataFilename + ".txt");
 			List<Integer> instances = Utils.shuffleInstances(allData.length);
 			int trainingInstances = (int) Math.floor(0.7 * allData.length);
 			int unseenInstances = (int) Math.ceil(0.3 * allData.length);
+
 			trainingData = new double[trainingInstances][];
 			unseenData = new double[unseenInstances][];
+
 			for (int i = 0; i < trainingInstances; i++) {
 				trainingData[i] = allData[instances.get(i)];
 			}
+
 			for (int i = 0; i < unseenInstances; i++) {
 				unseenData[i] = allData[instances.get(trainingInstances + i)];
 			}
@@ -232,6 +268,7 @@ public class Main {
 		} catch (Exception e) {
 			System.out.println(e);
 		}
+
 		StringTokenizer tokens = new StringTokenizer(allLines.get(0).trim());
 		int numberOfColumns = tokens.countTokens();
 		data = new double[allLines.size()][numberOfColumns];
