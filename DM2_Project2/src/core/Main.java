@@ -39,7 +39,7 @@ public class Main {
 	protected static String executableAlgorithm = "GP"; // Either GP or GSGP
 	
 	protected static boolean interleavedSampling = true;
-
+	//uniformCrossover,onePointCrossover,standardCrossover;	public static final String selectedCrossoverMethod = "uniformCrossover"; 
 	public static void main(String[] args) {
 
 		// load training and unseen data
