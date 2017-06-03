@@ -13,8 +13,7 @@ import programElements.Multiplication;
 import programElements.Operator;
 import programElements.ProgramElement;
 import programElements.ProtectedDivision;
-import programElements.Subtraction;
-import utils.Utils;
+import programElements.Subtraction;import programElements.Terminal;import utils.Utils;
 
 public class GpRun implements Serializable {
 
@@ -223,51 +222,40 @@ public class GpRun implements Serializable {
 
 	public Individual evolve(int numberOfGenerations) {
 		
-		// alternative stopping criteria
-		boolean stopCriteria = false;
-		
-		// evolve for a given number of generations
-		while (currentGeneration <= numberOfGenerations && !stopCriteria) {
-			if(this.interleavedSampling == true){data.trainingData = getSubSample(originalTrainingData, this.chooseSingleSubSampleProbability);}
-			Population offspring = new Population();
-			
-			// generate a new offspring population
-			while (offspring.getSize() < population.getSize()) {
-				Individual p1, newIndividual;
-				p1 = selectParent();
-				// apply crossover
-				if (randomGenerator.nextDouble() < 1 - crossoverProbability - mutationProbability) {
-					//	apply reproduction
-						newIndividual = p1.deepCopy();
-				} else { 
-					if (randomGenerator.nextDouble() < crossoverProbability / (crossoverProbability + mutationProbability)) {
-						Individual p2 = selectParent();
-						newIndividual = applyStandardCrossover(p1, p2);
-					}
-					// apply mutation
-					// if (randomGenerator.nextDouble() < mutationProbability) 
-					else {
-//						if (p1.getSize() < 300000 ) {
-							newIndividual = applyStandardMutation(p1);
-		//					newIndividual = applyNodeFlipMutation(p1);							
-//						} else {
-//							newIndividual = applyConstantMutation(p1);
-//						}
-						
-					}
-				}
-				/*
-				 * add the new individual to the offspring population if its
-				 * depth is not higher than the maximum (applicable only if the
-				 * depth limit is enabled)
-				 */
-				if (applyDepthLimit && newIndividual.getDepth() > maximumDepth) {
-					newIndividual = p1;
-				} else {
-					newIndividual.evaluate(data);
-				}
-				offspring.addIndividual(newIndividual);
-			}
+		// alternative stopping criteria
+		boolean stopCriteria = false;
+		// evolve for a given number of generations
+		while (currentGeneration <= numberOfGenerations && !stopCriteria) {
+			if(this.interleavedSampling == true){data.trainingData = getSubSample(originalTrainingData, this.chooseSingleSubSampleProbability);}
+			Population offspring = new Population();
+			// generate a new offspring population
+			while (offspring.getSize() < population.getSize()) {
+				Individual p1, newIndividual, newIndividual1 = null, newIndividual2 = null;
+				p1 = selectParent();				Individual p2 = selectParent();
+				// apply crossover
+				if (randomGenerator.nextDouble() < 1 - crossoverProbability - mutationProbability) {
+					//	apply reproduction
+						newIndividual = p1.deepCopy();						} 						//DELETED THE ELSE STATEMENT
+				else if (randomGenerator.nextDouble() < crossoverProbability / (crossoverProbability + mutationProbability)) {
+						newIndividual = applyStandardCrossover(p1, p2);						Individual[] Individuals;						switch(Main.selectedCrossoverMethod) {							case "uniformCrossover":								Individuals = uniformCrossover(p1, p2);								newIndividual1 = Individuals[0];								newIndividual2 = Individuals[1];								break;							case "onePointCrossover":								Individuals = onePointCrossover(p1, p2);								newIndividual1 = Individuals[0];								newIndividual2 = Individuals[1];								break;							case "standardCrossover":								newIndividual = applyStandardCrossover(p1, p2);								break;						}											}
+					// apply mutation
+					// if (randomGenerator.nextDouble() < mutationProbability) 
+				else {
+//						if (p1.getSize() < 300000 ) {
+							newIndividual = applyStandardMutation(p1);
+		//					newIndividual = applyNodeFlipMutation(p1);							
+//						} else {
+//							newIndividual = applyConstantMutation(p1);
+//						}
+					}
+												if(newIndividual1 == null & newIndividual2 == null){										if (applyDepthLimit && newIndividual.getDepth() > maximumDepth) {						newIndividual = p1;					} else {						newIndividual.evaluate(data);					}					offspring.addIndividual(newIndividual);									} else {
+				/*
+				 * add the new individual to the offspring population if its
+				 * depth is not higher than the maximum (applicable only if the
+				 * depth limit is enabled)
+				 */
+					if (applyDepthLimit && newIndividual1.getDepth() > maximumDepth) {						newIndividual = p1;					} else {						newIndividual1.evaluate(data);					}					if (applyDepthLimit && newIndividual2.getDepth() > maximumDepth) {						newIndividual = p2;					} else {						newIndividual2.evaluate(data);					}					offspring.addIndividual(newIndividual1);					offspring.addIndividual(newIndividual2);					
+			}}
 
 			population = selectSurvivors(offspring);
 			updateCurrentBest();
@@ -317,8 +305,8 @@ public class GpRun implements Serializable {
 			tournamentPopulation.addIndividual(population.getIndividual(index));
 		}
 		return tournamentPopulation.getBest();
-	}
-
+	}	protected Individual[] uniformCrossover(Individual p1, Individual p2) {		ArrayList<Integer> p1SimilarSchemeIndex = new ArrayList<Integer>();		ArrayList<Integer> p2SimilarSchemeIndex = new ArrayList<Integer>();		ArrayList<Integer> SimilarSchemeIndex = new ArrayList<Integer>();		Individual offspring[] = new Individual[2];		offspring[0] = p1;		offspring[1] = p2;		SimilarSchemeIndex = calculateSimilarScheme(0,0,p1,p2, p1SimilarSchemeIndex, p2SimilarSchemeIndex);		offspring[0] = p1.deepCopy();		offspring[1] = p2.deepCopy(); 				for (int i=0; i<p1SimilarSchemeIndex.size();i++ ) {			double randsize = Math.random();			if (randsize <(1/p1SimilarSchemeIndex.size())) {				int p1CrossoverStart = p1SimilarSchemeIndex.get(i);				int p2CrossoverStart = p2SimilarSchemeIndex.get(i);				//If following Element in the common Scheme then only copy the picked Element				if(p1SimilarSchemeIndex.contains(p1CrossoverStart+1)) { 					int p1ElementsToEnd = 1;					int p2ElementstoEnd = 1;										for (int j = 0; j < p2ElementstoEnd; j++) {						offspring[0].addProgramElementAtIndex(p2.getProgramElementAtIndex(p2CrossoverStart + j), p1CrossoverStart + j);	}					for (int k = 0; k < p1ElementsToEnd; k++) {						offspring[1].addProgramElementAtIndex(p1.getProgramElementAtIndex(p1CrossoverStart + k), p2CrossoverStart + k); }										} else {						int p1ElementsToEnd = p1.countElementsToEnd(p1CrossoverStart)-1;						int p2ElementsToEnd = p2.countElementsToEnd(p2CrossoverStart)-1; 					 						for (int j = 0; j < p2ElementsToEnd; j++) {							offspring[0].addProgramElementAtIndex(p2.getProgramElementAtIndex(p2CrossoverStart + j), p1CrossoverStart + j);}						for (int k = 0; k < p1ElementsToEnd; k++) {							offspring[1].addProgramElementAtIndex(p1.getProgramElementAtIndex(p1CrossoverStart + k), p2CrossoverStart + k);}					}			}			else{ 				}		}		offspring[0].calculateDepth();		offspring[1].calculateDepth();		return offspring;	}		protected Individual[] onePointCrossover(Individual p1, Individual p2) {		ArrayList<Integer> p1SimilarSchemeIndex = new ArrayList<Integer>();		ArrayList<Integer> p2SimilarSchemeIndex = new ArrayList<Integer>();		ArrayList<Integer> SimilarSchemeIndex = new ArrayList<Integer>();		Individual offspring[] = new Individual[2];		offspring[0] = p1;		offspring[1] = p2;		SimilarSchemeIndex = calculateSimilarScheme(0,0,p1,p2, p1SimilarSchemeIndex, p2SimilarSchemeIndex);		if (SimilarSchemeIndex.isEmpty()) {		} else {			Random r = new Random();			int crossoverPointIndex = (r.nextInt(p1SimilarSchemeIndex.size()));	//saves the index of the crossover			int p1CrossoverStart = p1SimilarSchemeIndex.get(crossoverPointIndex);			int p1ElementsToEnd = p1.countElementsToEnd(p1CrossoverStart);			int p2CrossoverStart = p2SimilarSchemeIndex.get(crossoverPointIndex);			int p2ElementsToEnd = p2.countElementsToEnd(p2CrossoverStart);			offspring[0] = p1.selectiveDeepCopy(p1CrossoverStart, p1CrossoverStart + p1ElementsToEnd - 1);			for (int i = 0; i < p2ElementsToEnd; i++) {				offspring[0].addProgramElementAtIndex(p2.getProgramElementAtIndex(p2CrossoverStart + i), p1CrossoverStart + i);				}			offspring[1]  = p2.selectiveDeepCopy(p2CrossoverStart, p2CrossoverStart + p2ElementsToEnd - 1);			for (int i = 0; i < p1ElementsToEnd; i++) {				offspring[1].addProgramElementAtIndex(p1.getProgramElementAtIndex(p1CrossoverStart + i), p2CrossoverStart + i);			}			offspring[0].calculateDepth();			offspring[1].calculateDepth();			return offspring;			}		return offspring;		}	
+	// Method to find the similar scheme 	public ArrayList<Integer> calculateSimilarScheme(int p1index,int p2index,Individual p1,Individual p2, ArrayList<Integer> p1SimilarSchemeIndex, ArrayList<Integer> p2SimilarSchemeIndex) {		ArrayList<ProgramElement> p1Program = p1.getProgram();		ArrayList<ProgramElement> p2Program = p2.getProgram();		ArrayList<Integer> SimilarSchemeIndex = new ArrayList<Integer>();				if(p1index < p1.getSize() & p2index < p2.getSize()){			if(p1Program.get(p1index) instanceof Operator & p2Program.get(p2index) instanceof Operator) {				Operator p1currentOperator = (Operator) p1Program.get(p1index);				Operator p2currentOperator = (Operator) p2Program.get(p2index);								p1SimilarSchemeIndex.add(p1index);				p2SimilarSchemeIndex.add(p2index);				if (p1currentOperator.getArity() == p2currentOperator.getArity()) { 					p1index++;					p2index++;					calculateSimilarScheme(p1index,p2index,p1,p2,p1SimilarSchemeIndex, p2SimilarSchemeIndex); 					}					else {					// Called if Operators don't have the same Arity					p1index = p1index + CalculateBranchToEnd(p1index,p1);					p2index ++;					calculateSimilarScheme(p1index,p2index,p1,p2,p1SimilarSchemeIndex, p2SimilarSchemeIndex);					p2index = p2index + CalculateBranchToEnd(p2index,p2);						p1index ++;					calculateSimilarScheme(p1index,p2index,p1,p2,p1SimilarSchemeIndex, p2SimilarSchemeIndex);				}			} else if((!(p1Program.get(p1index) instanceof Operator) & (!(p2Program.get(p2index) instanceof Operator)))) {				//Inner Check				p1SimilarSchemeIndex.add(p1index);				p2SimilarSchemeIndex.add(p2index);				p1index++;				p2index++;				calculateSimilarScheme(p1index,p2index,p1,p2,p1SimilarSchemeIndex, p2SimilarSchemeIndex);			} else { 				if(p1Program.get(p1index) instanceof Operator) {					p1index = p1index + CalculateBranchToEnd(p1index,p1);					p2index ++;					calculateSimilarScheme(p1index,p2index,p1,p2,p1SimilarSchemeIndex, p2SimilarSchemeIndex);														} else if(p2Program.get(p2index) instanceof Operator) {					p2index = p2index + CalculateBranchToEnd(p2index,p2);						p1index ++;					calculateSimilarScheme(p1index,p2index,p1,p2,p1SimilarSchemeIndex, p2SimilarSchemeIndex);				}					}				} 		else {				}		SimilarSchemeIndex.addAll(p1SimilarSchemeIndex);		SimilarSchemeIndex.addAll(p2SimilarSchemeIndex);		return(SimilarSchemeIndex); 	}		public int CalculateBranchToEnd(int currentIndex, Individual p) {		ArrayList<ProgramElement> program = p.getProgram();		if (program.get(currentIndex) instanceof Terminal) {			return 1;		} else {			Operator operator = (Operator) program.get(currentIndex);			int numberOfElements = 1;			for (int i = 0; i < operator.getArity(); i++) {				numberOfElements += CalculateBranchToEnd(currentIndex + numberOfElements, p);			}			return numberOfElements;		}			}	
 	protected Individual applyStandardCrossover(Individual p1, Individual p2) {
 
 		int p1CrossoverStart = randomGenerator.nextInt(p1.getSize());
