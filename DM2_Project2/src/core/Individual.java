@@ -11,22 +11,17 @@ import programElements.Terminal;
 import utils.Utils;
 
 public class Individual implements Serializable {
-
 	private static final long serialVersionUID = 7L;
-
 	protected static long nextId;
-
 	protected long id;
 	protected ArrayList<ProgramElement> program;
 	protected int depth;
 	protected double trainingError, unseenError, absDiffTrUnError;
 	protected double[] trainingDataOutputs, unseenDataOutputs;
-
 	protected int evaluateIndex;
 	protected int maximumDepthAchieved;
 	protected int depthCalculationIndex;
 	protected int printIndex;
-
 	protected boolean sizeOverride;
 	protected int computedSize;
 
@@ -198,7 +193,6 @@ public class Individual implements Serializable {
 	}
 
 	// ##### get's and set's from here on #####
-
 	public double getTrainingError() {
 		return trainingError;
 	}
@@ -210,7 +204,7 @@ public class Individual implements Serializable {
 	public double getAbsErrorDiff() {
 		return absDiffTrUnError;
 	}
-	
+
 	public double[] getTrainingDataOutputs() {
 		return trainingDataOutputs;
 	}

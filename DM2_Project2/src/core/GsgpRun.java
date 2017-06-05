@@ -8,9 +8,7 @@ import programElements.Subtraction;
 import utils.Utils;
 
 public class GsgpRun extends GpRun {
-
 	private static final long serialVersionUID = 7L;
-
 	protected double mutationStep;
 	protected boolean boundedMutation;
 	protected boolean buildIndividuals;
@@ -20,6 +18,7 @@ public class GsgpRun extends GpRun {
 		super(data, interleavedSampling);
 	}
 
+	@Override
 	protected void initialize() {
 		super.initialize();
 		applyDepthLimit = false;
@@ -30,6 +29,7 @@ public class GsgpRun extends GpRun {
 		buildIndividuals = false;
 	}
 
+	@Override
 	protected Individual applyStandardCrossover(Individual p1, Individual p2) {
 		if (buildIndividuals) {
 			return buildCrossoverIndividual(p1, p2);
@@ -39,55 +39,43 @@ public class GsgpRun extends GpRun {
 	}
 
 	protected Individual buildCrossoverIndividual(Individual p1, Individual p2) {
-
 		Individual offspring = new Individual();
-
 		offspring.addProgramElement(new Addition());
 		offspring.addProgramElement(new Multiplication());
-
 		// copy first parent to offspring
 		for (int i = 0; i < p1.getSize(); i++) {
 			offspring.addProgramElement(p1.getProgramElementAtIndex(i));
 		}
-
 		// create a random tree
 		int maximumInitialDepth = 6;
 		Individual randomTree = grow(maximumInitialDepth);
-
 		offspring.addProgramElement(new LogisticFunction());
 		// copy random tree to offspring
 		for (int i = 0; i < randomTree.getSize(); i++) {
 			offspring.addProgramElement(randomTree.getProgramElementAtIndex(i));
 		}
-
 		offspring.addProgramElement(new Multiplication());
 		offspring.addProgramElement(new Subtraction());
 		offspring.addProgramElement(new Constant(1.0));
-
 		offspring.addProgramElement(new LogisticFunction());
 		// copy random tree to offspring
 		for (int i = 0; i < randomTree.getSize(); i++) {
 			offspring.addProgramElement(randomTree.getProgramElementAtIndex(i));
 		}
-
 		// copy second parent to offspring
 		for (int i = 0; i < p2.getSize(); i++) {
 			offspring.addProgramElement(p2.getProgramElementAtIndex(i));
 		}
-
 		offspring.calculateDepth();
 		return offspring;
 	}
 
 	protected Individual buildCrossoverSemantics(Individual p1, Individual p2) {
-
 		Individual offspring = new Individual();
-
 		// create a random tree and evaluate it
 		int maximumInitialDepth = 6;
 		Individual randomTree = grow(maximumInitialDepth);
 		randomTree.evaluate(data);
-
 		// build training data semantics
 		double[] parent1TrainingSemantics = p1.getTrainingDataOutputs();
 		double[] parent2TrainingSemantics = p2.getTrainingDataOutputs();
@@ -95,7 +83,6 @@ public class GsgpRun extends GpRun {
 		double[] offspringTrainingSemantics = buildCrossoverOffspringSemantics(parent1TrainingSemantics,
 				parent2TrainingSemantics, randomTreeTrainingSemantics);
 		offspring.setTrainingDataOutputs(offspringTrainingSemantics);
-
 		// build unseen data semantics
 		double[] parent1UnseenSemantics = p1.getUnseenDataOutputs();
 		double[] parent2UnseenSemantics = p2.getUnseenDataOutputs();
@@ -103,12 +90,10 @@ public class GsgpRun extends GpRun {
 		double[] offspringUnseenSemantics = buildCrossoverOffspringSemantics(parent1UnseenSemantics,
 				parent2UnseenSemantics, randomTreeUnseenSemantics);
 		offspring.setUnseenDataOutputs(offspringUnseenSemantics);
-
 		// calculate size and depth
 		offspring.setSizeOverride(true);
 		offspring.setComputedSize(calculateCrossoverOffspringSize(p1, p2, randomTree));
 		offspring.setDepth(calculateCrossoverOffspringDepth(p1, p2, randomTree));
-
 		return offspring;
 	}
 
@@ -133,6 +118,7 @@ public class GsgpRun extends GpRun {
 		return Math.max(largestParentDepth + 2, randomTree.getDepth() + 3 + 1);
 	}
 
+	@Override
 	protected Individual applyStandardMutation(Individual p) {
 		if (buildIndividuals) {
 			return buildMutationIndividual(p);
@@ -142,24 +128,19 @@ public class GsgpRun extends GpRun {
 	}
 
 	protected Individual buildMutationIndividual(Individual p) {
-
 		Individual offspring = new Individual();
 		offspring.addProgramElement(new Addition());
-
 		// copy parent to offspring
 		for (int i = 0; i < p.getSize(); i++) {
 			offspring.addProgramElement(p.getProgramElementAtIndex(i));
 		}
-
 		offspring.addProgramElement(new Multiplication());
 		offspring.addProgramElement(new Constant(mutationStep));
 		offspring.addProgramElement(new Subtraction());
-
 		// create 2 random trees
 		int maximumInitialDepth = 6;
 		Individual randomTree1 = grow(maximumInitialDepth);
 		Individual randomTree2 = grow(maximumInitialDepth);
-
 		if (boundedMutation) {
 			offspring.addProgramElement(new LogisticFunction());
 		}
@@ -167,7 +148,6 @@ public class GsgpRun extends GpRun {
 		for (int i = 0; i < randomTree1.getSize(); i++) {
 			offspring.addProgramElement(randomTree1.getProgramElementAtIndex(i));
 		}
-
 		if (boundedMutation) {
 			offspring.addProgramElement(new LogisticFunction());
 		}
@@ -175,22 +155,18 @@ public class GsgpRun extends GpRun {
 		for (int i = 0; i < randomTree2.getSize(); i++) {
 			offspring.addProgramElement(randomTree2.getProgramElementAtIndex(i));
 		}
-
 		offspring.calculateDepth();
 		return offspring;
 	}
 
 	protected Individual buildMutationSemantics(Individual p) {
-
 		Individual offspring = new Individual();
-
 		// create 2 random trees and evaluate them
 		int maximumInitialDepth = 6;
 		Individual randomTree1 = grow(maximumInitialDepth);
 		Individual randomTree2 = grow(maximumInitialDepth);
 		randomTree1.evaluate(data);
 		randomTree2.evaluate(data);
-
 		// build training data semantics
 		double[] parentTrainingSemantics = p.getTrainingDataOutputs();
 		double[] randomTree1TrainingSemantics = randomTree1.getTrainingDataOutputs();
@@ -198,7 +174,6 @@ public class GsgpRun extends GpRun {
 		double[] offspringTrainingSemantics = buildMutationOffspringSemantics(parentTrainingSemantics,
 				randomTree1TrainingSemantics, randomTree2TrainingSemantics);
 		offspring.setTrainingDataOutputs(offspringTrainingSemantics);
-
 		// build unseen data semantics
 		double[] parentUnseenSemantics = p.getUnseenDataOutputs();
 		double[] randomTree1UnseenSemantics = randomTree1.getUnseenDataOutputs();
@@ -206,12 +181,10 @@ public class GsgpRun extends GpRun {
 		double[] offspringUnseenSemantics = buildMutationOffspringSemantics(parentUnseenSemantics,
 				randomTree1UnseenSemantics, randomTree2UnseenSemantics);
 		offspring.setUnseenDataOutputs(offspringUnseenSemantics);
-
 		// calculate size and depth
 		offspring.setSizeOverride(true);
 		offspring.setComputedSize(calculateMutationOffspringSize(p, randomTree1, randomTree2));
 		offspring.setDepth(calculateMutationOffspringDepth(p, randomTree1, randomTree2));
-
 		return offspring;
 	}
 
@@ -240,7 +213,6 @@ public class GsgpRun extends GpRun {
 	}
 
 	// ##### get's and set's from here on #####
-
 	public double getMutationStep() {
 		return mutationStep;
 	}
