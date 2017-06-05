@@ -48,7 +48,7 @@ public class GpRun implements Serializable {
 	protected int runsWithoutImprovement;
 	protected boolean interleavedSampling;
 	protected double chooseSingleSubSampleProbability = 0.5;
-	protected double subSampleSize = 0.35;
+	protected double subSampleSize = 0.2;
 
 	public GpRun(Data data, Data kFoldData, boolean interleavedSampling) {
 		this.data = data;
@@ -164,7 +164,7 @@ public class GpRun implements Serializable {
 
 	// Returns a sub selection of the training data, used for cross validation
 	private double[][] getSubSample(double[][] originalTrainingData, double chooseSingleSubSampleProbability) {
-		if (randomGenerator.nextDouble() < chooseSingleSubSampleProbability) {
+		if (randomGenerator.nextDouble() > chooseSingleSubSampleProbability) {
 			return originalTrainingData;
 		} else {
 			double[][] trainingSubSample;

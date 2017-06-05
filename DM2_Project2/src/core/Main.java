@@ -20,7 +20,7 @@ public class Main {
 
 	public static final String DATA_FILENAME = "dataset";
 	public static final int NUMBER_OF_RUNS = 10;
-	public static final int NUMBER_OF_GENERATIONS = 500;
+	public static final int NUMBER_OF_GENERATIONS = 2000;
 	public static Population bestIndividualAtGenerations = new Population();
 
 	public static int[] stopAtGen = new int[NUMBER_OF_RUNS];
@@ -41,6 +41,9 @@ public class Main {
 	protected static int k = 10;
 	public static double kFoldProbability = 0.1;
 
+	private static double[][] originalTrainingData;
+	private static double[][] originalUnseenData;
+
 	protected static String dataFileName = "Kfold k = 10 kFoldProbability 0.2";
 
 	// uniformCrossover,onePointCrossover,standardCrossover;
@@ -53,11 +56,13 @@ public class Main {
 
 		kFoldData = loadKfoldData(DATA_FILENAME);
 		data = loadData(DATA_FILENAME);
+		originalTrainingData = data.getTrainingData();
+		originalUnseenData = data.getUnseenData();
 
 		// run GP for a given number of runs
 		double[][] resultsPerRun = new double[4][NUMBER_OF_RUNS];
 		for (int i = 0; i < NUMBER_OF_RUNS; i++) {
-
+			data.trainingData = originalTrainingData;
 			System.out.printf("\n\t\t##### Run %d #####\n", i + 1);
 			CURRENT_RUN = i;
 
