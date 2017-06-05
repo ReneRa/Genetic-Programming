@@ -78,7 +78,7 @@ public class GpRun implements Serializable {
 		}
 		// adds all the constants to the terminal set
 		terminalSet = new ArrayList<ProgramElement>();
-		double[] constants = { -1.0, -0.75, -0.5, -0.25, 0.0, 0.25, 0.5, 0.75, 1.0 };
+		double[] constants = { -1, -0.75, -0.5, -0.25, 0.0, 0.25, 0.5, 0.75, 1 };
 		constantsLength = constants.length;
 		for (int i = 0; i < constantsLength; i++) {
 			terminalSet.add(new Constant(constants[i]));
@@ -108,7 +108,7 @@ public class GpRun implements Serializable {
 		// you can turn it off by changing % of generations to 1
 		maxRunsWithoutImprovements = Math.round(Main.NUMBER_OF_GENERATIONS * 1);
 		currentGeneration = 0;
-		// initialize and evaluate population
+		// initialize and evaluate po..pulation
 		rampedHalfAndHalfInitialization();
 		for (int i = 0; i < populationSize; i++) {
 			if (Main.kFold == true & randomGenerator.nextDouble() < Main.kFoldProbability) {
@@ -300,6 +300,9 @@ public class GpRun implements Serializable {
 						newIndividual1 = Individuals[0];
 						newIndividual2 = Individuals[1];
 						break;
+					case "singleUniformCrossover":
+						newIndividual = singleUniformCrossover(p1, p2);
+						break;
 					case "onePointCrossover":
 						Individuals = onePointCrossover(p1, p2);
 						newIndividual1 = Individuals[0];
@@ -307,6 +310,17 @@ public class GpRun implements Serializable {
 						break;
 					case "standardCrossover":
 						newIndividual = applyStandardCrossover(p1, p2);
+						break;
+					case "adjustedStandardCrossover":
+						Individuals = adjustedStandardCrossover(p1, p2);
+						newIndividual1 = Individuals[0];
+						newIndividual2 = Individuals[1];
+						break;
+					case "randomCrossover":
+						newIndividual = randomCrossover(p1, p2);
+						break;
+					case "singleOnePointCrossover":
+						newIndividual = singleOnePointCrossover(p1, p2);
 						break;
 					}
 				}
@@ -338,21 +352,21 @@ public class GpRun implements Serializable {
 					 * the depth limit is enabled)
 					 */
 					if (applyDepthLimit && newIndividual1.getDepth() > maximumDepth) {
-						newIndividual = p1;
+						newIndividual1 = p1;
 					} else {
 						if (Main.kFold == true & useKFold) {
-							kFoldEvaluation(originalKFoldTrainingData, newIndividual);
+							kFoldEvaluation(originalKFoldTrainingData, newIndividual1);
 						} else {
-							newIndividual.evaluate(data);
+							newIndividual1.evaluate(data);
 						}
 					}
 					if (applyDepthLimit && newIndividual2.getDepth() > maximumDepth) {
-						newIndividual = p2;
+						newIndividual2 = p2;
 					} else {
 						if (Main.kFold == true & useKFold) {
-							kFoldEvaluation(originalKFoldTrainingData, newIndividual);
+							kFoldEvaluation(originalKFoldTrainingData, newIndividual2);
 						} else {
-							newIndividual.evaluate(data);
+							newIndividual2.evaluate(data);
 						}
 					}
 					offspring.addIndividual(newIndividual1);
@@ -470,6 +484,42 @@ public class GpRun implements Serializable {
 		return offspring;
 	}
 
+	protected Individual singleUniformCrossover(Individual p1, Individual p2) {
+		ArrayList<Integer> p1SimilarSchemeIndex = new ArrayList<Integer>();
+		ArrayList<Integer> p2SimilarSchemeIndex = new ArrayList<Integer>();
+		ArrayList<Integer> SimilarSchemeIndex = new ArrayList<Integer>();
+		Individual offspring = p1;
+		SimilarSchemeIndex = calculateSimilarScheme(0, 0, p1, p2, p1SimilarSchemeIndex, p2SimilarSchemeIndex);
+		offspring = p1.deepCopy();
+		for (int i = 0; i < p1SimilarSchemeIndex.size(); i++) {
+			double randsize = Math.random();
+			if (randsize < (1 / p1SimilarSchemeIndex.size())) {
+				int p1CrossoverStart = p1SimilarSchemeIndex.get(i);
+				int p2CrossoverStart = p2SimilarSchemeIndex.get(i);
+				// If following Element in the common Scheme then only copy the
+				// picked Element
+				if (p1SimilarSchemeIndex.contains(p1CrossoverStart + 1)) {
+					int p1ElementsToEnd = 1;
+					int p2ElementstoEnd = 1;
+					for (int j = 0; j < p2ElementstoEnd; j++) {
+						offspring.addProgramElementAtIndex(p2.getProgramElementAtIndex(p2CrossoverStart + j),
+								p1CrossoverStart + j);
+					}
+				} else {
+					int p1ElementsToEnd = p1.countElementsToEnd(p1CrossoverStart) - 1;
+					int p2ElementsToEnd = p2.countElementsToEnd(p2CrossoverStart) - 1;
+					for (int j = 0; j < p2ElementsToEnd; j++) {
+						offspring.addProgramElementAtIndex(p2.getProgramElementAtIndex(p2CrossoverStart + j),
+								p1CrossoverStart + j);
+					}
+				}
+			} else {
+			}
+		}
+		offspring.calculateDepth();
+		return offspring;
+	}
+
 	protected Individual[] onePointCrossover(Individual p1, Individual p2) {
 		ArrayList<Integer> p1SimilarSchemeIndex = new ArrayList<Integer>();
 		ArrayList<Integer> p2SimilarSchemeIndex = new ArrayList<Integer>();
@@ -503,6 +553,47 @@ public class GpRun implements Serializable {
 			}
 			offspring[0].calculateDepth();
 			offspring[1].calculateDepth();
+			return offspring;
+		}
+		return offspring;
+	}
+
+	protected Individual randomCrossover(Individual p1, Individual p2) {
+		Individual offspring;
+		double randsize = Math.random();
+		if (randsize > (0.9)) {
+			offspring = singleUniformCrossover(p1, p2);
+		} else if (randsize > 0.8 && randsize < 0.9) {
+			offspring = singleOnePointCrossover(p1, p2);
+		} else {
+			offspring = applyStandardCrossover(p1, p2);
+		}
+		return offspring;
+	}
+
+	protected Individual singleOnePointCrossover(Individual p1, Individual p2) {
+		ArrayList<Integer> p1SimilarSchemeIndex = new ArrayList<Integer>();
+		ArrayList<Integer> p2SimilarSchemeIndex = new ArrayList<Integer>();
+		ArrayList<Integer> SimilarSchemeIndex = new ArrayList<Integer>();
+		Individual offspring = p1;
+		SimilarSchemeIndex = calculateSimilarScheme(0, 0, p1, p2, p1SimilarSchemeIndex, p2SimilarSchemeIndex);
+		if (SimilarSchemeIndex.isEmpty()) {
+			offspring = applyStandardCrossover(p1, p2);
+		} else {
+			Random r = new Random();
+			int crossoverPointIndex = (r.nextInt(p1SimilarSchemeIndex.size()));
+
+			int p1CrossoverStart = p1SimilarSchemeIndex.get(crossoverPointIndex);
+			int p1ElementsToEnd = p1.countElementsToEnd(p1CrossoverStart);
+			int p2CrossoverStart = p2SimilarSchemeIndex.get(crossoverPointIndex);
+			int p2ElementsToEnd = p2.countElementsToEnd(p2CrossoverStart);
+			offspring = p1.selectiveDeepCopy(p1CrossoverStart, p1CrossoverStart + p1ElementsToEnd - 1);
+			for (int i = 0; i < p2ElementsToEnd; i++) {
+				offspring.addProgramElementAtIndex(p2.getProgramElementAtIndex(p2CrossoverStart + i),
+						p1CrossoverStart + i);
+			}
+
+			offspring.calculateDepth();
 			return offspring;
 		}
 		return offspring;
@@ -571,6 +662,30 @@ public class GpRun implements Serializable {
 			}
 			return numberOfElements;
 		}
+	}
+
+	protected Individual[] adjustedStandardCrossover(Individual p1, Individual p2) {
+		int p1CrossoverStart = randomGenerator.nextInt(p1.getSize());
+		int p1ElementsToEnd = p1.countElementsToEnd(p1CrossoverStart);
+		int p2CrossoverStart = randomGenerator.nextInt(p2.getSize());
+		int p2ElementsToEnd = p2.countElementsToEnd(p2CrossoverStart);
+		// add the selected tree from the second parent to the offspring
+		Individual offspring[] = new Individual[2];
+		offspring[0] = p1.selectiveDeepCopy(p1CrossoverStart, p1CrossoverStart + p1ElementsToEnd - 1);
+		offspring[1] = p2.selectiveDeepCopy(p2CrossoverStart, p2CrossoverStart + p2ElementsToEnd - 1);
+
+		for (int i = 0; i < p2ElementsToEnd; i++) {
+			offspring[0].addProgramElementAtIndex(p2.getProgramElementAtIndex(p2CrossoverStart + i),
+					p1CrossoverStart + i);
+		}
+		for (int i = 0; i < p1ElementsToEnd; i++) {
+			offspring[1].addProgramElementAtIndex(p1.getProgramElementAtIndex(p1CrossoverStart + i),
+					p2CrossoverStart + i);
+		}
+
+		offspring[0].calculateDepth();
+		offspring[1].calculateDepth();
+		return offspring;
 	}
 
 	protected Individual applyStandardCrossover(Individual p1, Individual p2) {

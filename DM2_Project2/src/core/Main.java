@@ -19,7 +19,8 @@ public class Main {
 	// public static final boolean SHUFFLE_AND_SPLIT = false;
 
 	public static final String DATA_FILENAME = "dataset";
-	public static final int NUMBER_OF_RUNS = 3;
+	public static final int NUMBER_OF_RUNS = 10;
+
 	public static final int NUMBER_OF_GENERATIONS = 1000;
 	public static Population bestIndividualAtGenerations = new Population();
 
@@ -46,7 +47,7 @@ public class Main {
 
 	protected static String dataFileName = "2 * overfitting error";
 
-	// uniformCrossover,onePointCrossover,standardCrossover;
+	// uniformCrossover,onePointCrossover,standardCrossover,randomCrossover,adjustedStandardCrossover,singleOnePointCrossover,singleUniformCrossover;
 	public static final String selectedCrossoverMethod = "standardCrossover";
 
 	public static void main(String[] args) {
