@@ -11,6 +11,7 @@ import programElements.InputVariable;
 import programElements.Multiplication;
 import programElements.Operator;
 import programElements.ProgramElement;
+import programElements.ProtectedDivision;
 import programElements.Subtraction;
 import programElements.Terminal;
 import utils.Utils;
@@ -21,6 +22,10 @@ public class GpRun implements Serializable {
 	// ##### parameters #####
 	protected Data data;
 	protected double[][] originalTrainingData;
+	protected double[][] originalUnseenData;
+	protected double[][] originalKFoldTrainingData;
+	protected double[][] previousTrainingData;
+	protected double[][] previousUnseenData;
 	protected ArrayList<ProgramElement> functionSet, terminalSet, fullSet;
 	protected int populationSize;
 	protected boolean applyDepthLimit;
@@ -45,9 +50,11 @@ public class GpRun implements Serializable {
 	protected double chooseSingleSubSampleProbability = 0.5;
 	protected double subSampleSize = 0.35;
 
-	public GpRun(Data data, boolean interleavedSampling) {
+	public GpRun(Data data, Data kFoldData, boolean interleavedSampling) {
 		this.data = data;
 		this.originalTrainingData = data.getTrainingData();
+		this.originalUnseenData = data.getUnseenData();
+		this.originalKFoldTrainingData = kFoldData.getTrainingData();
 		this.interleavedSampling = interleavedSampling;
 		initialize();
 	}
@@ -58,7 +65,7 @@ public class GpRun implements Serializable {
 		functionSet.add(new Addition());
 		functionSet.add(new Subtraction());
 		functionSet.add(new Multiplication());
-		// functionSet.add(new ProtectedDivision());
+		functionSet.add(new ProtectedDivision());
 		// functionSet.add(new Exp());
 		// functionSet.add(new Expm1());
 		// functionSet.add(new LogisticFunction());
@@ -104,7 +111,11 @@ public class GpRun implements Serializable {
 		// initialize and evaluate population
 		rampedHalfAndHalfInitialization();
 		for (int i = 0; i < populationSize; i++) {
-			population.getIndividual(i).evaluate(data);
+			if (Main.kFold == true & randomGenerator.nextDouble() < Main.kFoldProbability) {
+				kFoldEvaluation(originalKFoldTrainingData, population.getIndividual(i));
+			} else {
+				population.getIndividual(i).evaluate(data);
+			}
 		}
 		updateCurrentBest();
 		globalBest = getCurrentBest();
@@ -113,9 +124,47 @@ public class GpRun implements Serializable {
 		currentGeneration++;
 	}
 
+	// Validates an individual using k fold cross validation
+	private void kFoldEvaluation(double[][] originalTrainingData, Individual individual) {
+		int partitionLength = originalTrainingData.length / Main.k;
+		int trainingSetSize = partitionLength * (Main.k - 1);
+		double averageTrainingError = 0;
+		double averageUnseenError = 0;
+
+		for (int k = 0; k < Main.k; k++) {
+			double[][] trainingSet = new double[trainingSetSize][];
+			double[][] validationSet = new double[partitionLength][];
+
+			for (int i = 0 + (k * partitionLength); i < partitionLength + (partitionLength * k); i++) {
+				validationSet[i - (k * partitionLength)] = originalTrainingData[i];
+			}
+
+			// Load training data that is located before the validation set
+			for (int i = 0; i < k * partitionLength; i++) {
+				trainingSet[i] = originalTrainingData[i];
+			}
+			// Load training data that is located after the validation set
+			for (int i = (k + 1) * partitionLength; i < originalTrainingData.length; i++) {
+				trainingSet[i - partitionLength] = originalTrainingData[i];
+
+			}
+
+			data.trainingData = trainingSet;
+			data.unseenData = validationSet;
+
+			individual.evaluate(data);
+			averageTrainingError += individual.getTrainingError();
+			averageUnseenError += individual.getUnseenError();
+		}
+		averageTrainingError = averageTrainingError / Main.k;
+		averageUnseenError = averageUnseenError / Main.k;
+		individual.trainingError = averageTrainingError;
+		individual.unseenError = averageUnseenError;
+	}
+
 	// Returns a sub selection of the training data, used for cross validation
-	public double[][] getSubSample(double[][] originalTrainingData, double chooseSingleSubSampleProbability) {
-		if (randomGenerator.nextDouble() < chooseSingleSubSampleProbability) {
+	private double[][] getSubSample(double[][] originalTrainingData, double chooseSingleSubSampleProbability) {
+		if (randomGenerator.nextDouble() > chooseSingleSubSampleProbability) {
 			return originalTrainingData;
 		} else {
 			double[][] trainingSubSample;
@@ -218,12 +267,21 @@ public class GpRun implements Serializable {
 		boolean stopCriteria = false;
 		// evolve for a given number of generations
 		while (currentGeneration <= numberOfGenerations && !stopCriteria) {
+			previousTrainingData = data.trainingData;
+			previousUnseenData = data.unseenData;
+			data.trainingData = originalTrainingData;
+			data.unseenData = originalUnseenData;
+			boolean useKFold = false;
+			if (randomGenerator.nextDouble() < Main.kFoldProbability) {
+				useKFold = true;
+			}
 			if (this.interleavedSampling == true) {
 				data.trainingData = getSubSample(originalTrainingData, this.chooseSingleSubSampleProbability);
 			}
 			Population offspring = new Population();
 			// generate a new offspring population
 			while (offspring.getSize() < population.getSize()) {
+
 				Individual p1, newIndividual = null, newIndividual1 = null, newIndividual2 = null;
 				p1 = selectParent();
 				Individual p2 = selectParent();
@@ -266,7 +324,11 @@ public class GpRun implements Serializable {
 					if (applyDepthLimit && newIndividual.getDepth() > maximumDepth) {
 						newIndividual = p1;
 					} else {
-						newIndividual.evaluate(data);
+						if (Main.kFold == true & useKFold) {
+							kFoldEvaluation(originalKFoldTrainingData, newIndividual);
+						} else {
+							newIndividual.evaluate(data);
+						}
 					}
 					offspring.addIndividual(newIndividual);
 				} else {
@@ -278,12 +340,20 @@ public class GpRun implements Serializable {
 					if (applyDepthLimit && newIndividual1.getDepth() > maximumDepth) {
 						newIndividual = p1;
 					} else {
-						newIndividual1.evaluate(data);
+						if (Main.kFold == true & useKFold) {
+							kFoldEvaluation(originalKFoldTrainingData, newIndividual);
+						} else {
+							newIndividual.evaluate(data);
+						}
 					}
 					if (applyDepthLimit && newIndividual2.getDepth() > maximumDepth) {
 						newIndividual = p2;
 					} else {
-						newIndividual2.evaluate(data);
+						if (Main.kFold == true & useKFold) {
+							kFoldEvaluation(originalKFoldTrainingData, newIndividual);
+						} else {
+							newIndividual.evaluate(data);
+						}
 					}
 					offspring.addIndividual(newIndividual1);
 					offspring.addIndividual(newIndividual2);
@@ -296,16 +366,27 @@ public class GpRun implements Serializable {
 			currentGeneration++;
 			stopCriteria = updateStopCriteria(getCurrentBest(), getGlobalBest());
 		}
+		for (int i = 0; i < population.getSize(); i++) {
+			population.getIndividual(i).evaluateOnTestData(data);
+		}
 		return getCurrentBest();
 		// return getGlobalBest();
 	}
 
 	protected void printState() {
 		if (printAtEachGeneration) {
+			// System.out.println("\nGeneration:\t\t" + currentGeneration);
+			// System.out.printf("Training error:\t\t%.2f\nUnseen
+			// error:\t\t%.2f\nSize:\t\t\t%d\nDepth:\t\t\t%d\n",
+			// currentBest.getTrainingError(), currentBest.getUnseenError(),
+			// currentBest.getSize(),
+			// currentBest.getDepth());
+
 			System.out.println("\nGeneration:\t\t" + currentGeneration);
-			System.out.printf("Training error:\t\t%.2f\nUnseen error:\t\t%.2f\nSize:\t\t\t%d\nDepth:\t\t\t%d\n",
-					currentBest.getTrainingError(), currentBest.getUnseenError(), currentBest.getSize(),
-					currentBest.getDepth());
+			System.out.printf(
+					"Training error:\t\t%.2f\nUnseen error:\t\t%.2f\nTest error:\t\t%.2f\nSize:\t\t\t%d\nDepth:\t\t\t%d\n",
+					currentBest.getTrainingError(), currentBest.getUnseenError(), currentBest.getTestError(),
+					currentBest.getSize(), currentBest.getDepth());
 		}
 	}
 

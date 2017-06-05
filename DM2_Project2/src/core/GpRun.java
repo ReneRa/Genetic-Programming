@@ -48,7 +48,7 @@ public class GpRun implements Serializable {
 	protected int runsWithoutImprovement;
 	protected boolean interleavedSampling;
 	protected double chooseSingleSubSampleProbability = 0.5;
-	protected double subSampleSize = 0.2;
+	protected double subSampleSize = 0.01;
 
 	public GpRun(Data data, Data kFoldData, boolean interleavedSampling) {
 		this.data = data;
@@ -366,16 +366,28 @@ public class GpRun implements Serializable {
 			currentGeneration++;
 			stopCriteria = updateStopCriteria(getCurrentBest(), getGlobalBest());
 		}
+		for (int i = 0; i < population.getSize(); i++) {
+			population.getIndividual(i).evaluateOnTestData(data);
+		}
 		return getCurrentBest();
 		// return getGlobalBest();
 	}
 
 	protected void printState() {
 		if (printAtEachGeneration) {
+
 			System.out.println("\nGeneration:\t\t" + currentGeneration);
-			System.out.printf("Training error:\t\t%.2f\nUnseen error:\t\t%.2f\nSize:\t\t\t%d\nDepth:\t\t\t%d\n",
-					currentBest.getTrainingError(), currentBest.getUnseenError(), currentBest.getSize(),
-					currentBest.getDepth());
+			System.out.printf(
+					"Training error:\t\t%.2f\nUnseen error:\t\t%.2f\nTesterror:\t\t%.2f\nSize:\t\t\t%d\nDepth:\t\t\t%d\n",
+					currentBest.getTrainingError(), currentBest.getUnseenError(), currentBest.getTestError(),
+					currentBest.getSize(), currentBest.getDepth());
+
+			// System.out.println("\nGeneration:\t\t" + currentGeneration);
+			// System.out.printf("Training
+			// error:\t\t%.2f\nUnseenerror:\t\t%.2f\nSize:\t\t\t%d\nDepth:\t\t\t%d\n",
+			// currentBest.getTrainingError(), currentBest.getUnseenError(),
+			// currentBest.getSize(),
+			// currentBest.getDepth());
 		}
 	}
 

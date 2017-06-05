@@ -16,8 +16,8 @@ public class Individual implements Serializable {
 	protected long id;
 	protected ArrayList<ProgramElement> program;
 	protected int depth;
-	protected double trainingError, unseenError, absDiffTrUnError;
-	protected double[] trainingDataOutputs, unseenDataOutputs;
+	protected double trainingError, unseenError, testError, absDiffTrUnError;
+	protected double[] trainingDataOutputs, unseenDataOutputs, testDataOutputs;
 	protected int evaluateIndex;
 	protected int maximumDepthAchieved;
 	protected int depthCalculationIndex;
@@ -37,6 +37,7 @@ public class Individual implements Serializable {
 	public void evaluate(Data data) {
 		evaluateOnTrainingData(data);
 		evaluateOnUnseenData(data);
+		evaluateOnTestData(data);
 		absDiffTrUnError = Math.abs(this.unseenError - this.trainingError);
 	}
 
@@ -47,6 +48,15 @@ public class Individual implements Serializable {
 		}
 		trainingError = Utils.calculateRMSE(trainingData, trainingDataOutputs);
 		return trainingDataOutputs;
+	}
+
+	public double[] evaluateOnTestData(Data data) {
+		double[][] testData = data.getTestData();
+		if (sizeOverride == false) {
+			testDataOutputs = evaluate(testData);
+		}
+		testError = Utils.calculateRMSE(testData, testDataOutputs);
+		return testDataOutputs;
 	}
 
 	public double[] evaluateOnUnseenData(Data data) {
@@ -199,6 +209,10 @@ public class Individual implements Serializable {
 
 	public double getUnseenError() {
 		return unseenError;
+	}
+
+	public double getTestError() {
+		return testError;
 	}
 
 	public double getAbsErrorDiff() {

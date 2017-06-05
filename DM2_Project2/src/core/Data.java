@@ -6,7 +6,7 @@ public class Data implements Serializable {
 
 	private static final long serialVersionUID = 7L;
 
-	protected double[][] trainingData, unseenData;
+	protected double[][] trainingData, unseenData, testData;
 
 	public Data(double[][] trainingData, double[][] unseenData) {
 		this.trainingData = trainingData;
@@ -26,11 +26,19 @@ public class Data implements Serializable {
 		return unseenData;
 	}
 
+	public double[][] getTestData() {
+		return testData;
+	}
+
 	public void setTrainingData(double[][] trainingData) {
 		this.trainingData = trainingData;
 	}
 
 	public void setUnseenData(double[][] unseenData) {
 		this.unseenData = unseenData;
+	}
+
+	public void setTestData(double[][] testData) {
+		this.testData = testData;
 	}
 }

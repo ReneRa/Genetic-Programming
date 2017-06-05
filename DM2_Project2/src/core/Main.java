@@ -19,8 +19,8 @@ public class Main {
 	// public static final boolean SHUFFLE_AND_SPLIT = false;
 
 	public static final String DATA_FILENAME = "dataset";
-	public static final int NUMBER_OF_RUNS = 10;
-	public static final int NUMBER_OF_GENERATIONS = 2000;
+	public static final int NUMBER_OF_RUNS = 3;
+	public static final int NUMBER_OF_GENERATIONS = 1000;
 	public static Population bestIndividualAtGenerations = new Population();
 
 	public static int[] stopAtGen = new int[NUMBER_OF_RUNS];
@@ -44,7 +44,7 @@ public class Main {
 	private static double[][] originalTrainingData;
 	private static double[][] originalUnseenData;
 
-	protected static String dataFileName = "Kfold k = 10 kFoldProbability 0.2";
+	protected static String dataFileName = "2 * overfitting error";
 
 	// uniformCrossover,onePointCrossover,standardCrossover;
 	public static final String selectedCrossoverMethod = "standardCrossover";
@@ -60,7 +60,7 @@ public class Main {
 		originalUnseenData = data.getUnseenData();
 
 		// run GP for a given number of runs
-		double[][] resultsPerRun = new double[4][NUMBER_OF_RUNS];
+		double[][] resultsPerRun = new double[5][NUMBER_OF_RUNS];
 		for (int i = 0; i < NUMBER_OF_RUNS; i++) {
 			data.trainingData = originalTrainingData;
 			System.out.printf("\n\t\t##### Run %d #####\n", i + 1);
@@ -110,6 +110,7 @@ public class Main {
 			resultsPerRun[1][i] = bestFound.getUnseenError();
 			resultsPerRun[2][i] = bestFound.getSize();
 			resultsPerRun[3][i] = bestFound.getDepth();
+			resultsPerRun[4][i] = bestFound.getTestError();
 			System.out.print("\nBest =>");
 			bestFound.print();
 			System.out.println();
@@ -121,6 +122,7 @@ public class Main {
 		System.out.printf("\n\t\t##### Results #####\n\n");
 		System.out.printf("Average training error:\t\t%.2f\n", Utils.getAverage(resultsPerRun[0]));
 		System.out.printf("Average unseen error:\t\t%.2f\n", Utils.getAverage(resultsPerRun[1]));
+		System.out.printf("Average test error:\t\t%.2f\n", Utils.getAverage(resultsPerRun[4]));
 		System.out.printf("Average size:\t\t\t%.2f\n", Utils.getAverage(resultsPerRun[2]));
 		System.out.printf("Average depth:\t\t\t%.2f\n", Utils.getAverage(resultsPerRun[3]));
 
@@ -259,16 +261,18 @@ public class Main {
 	}
 
 	public static Data loadData(String dataFilename) {
-		double[][] trainingData, unseenData;
+		double[][] trainingData, unseenData, testData;
 
 		if (SHUFFLE_AND_SPLIT) {
 			double[][] allData = readData(dataFilename + ".txt");
 			List<Integer> instances = Utils.shuffleInstances(allData.length);
-			int trainingInstances = (int) Math.floor(0.7 * allData.length);
-			int unseenInstances = (int) Math.ceil(0.3 * allData.length);
+			int trainingInstances = (int) Math.floor(0.6 * allData.length);
+			int unseenInstances = (int) Math.ceil(0.2 * allData.length);
+			int testInstances = (int) Math.floor(0.2 * allData.length);
 
 			trainingData = new double[trainingInstances][];
 			unseenData = new double[unseenInstances][];
+			testData = new double[testInstances][];
 
 			for (int i = 0; i < trainingInstances; i++) {
 				trainingData[i] = allData[instances.get(i)];
@@ -277,11 +281,17 @@ public class Main {
 			for (int i = 0; i < unseenInstances; i++) {
 				unseenData[i] = allData[instances.get(trainingInstances + i)];
 			}
+
+			for (int i = 0; i < testInstances; i++) {
+				testData[i] = allData[instances.get(trainingInstances + unseenInstances + i)];
+			}
 		} else {
 			trainingData = readData(dataFilename + "_training.txt");
 			unseenData = readData(dataFilename + "_unseen.txt");
 		}
-		return new Data(trainingData, unseenData);
+		Data data = new Data(trainingData, unseenData);
+		data.setTestData(testData);
+		return data;
 	}
 
 	public static double[][] readData(String filename) {

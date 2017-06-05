@@ -14,8 +14,8 @@ public class GsgpRun extends GpRun {
 	protected boolean buildIndividuals;
 	protected boolean seedInitialization;
 
-	public GsgpRun(Data data, boolean interleavedSampling) {
-		super(data, interleavedSampling);
+	public GsgpRun(Data data, Data kFoldData, boolean interleavedSampling) {
+		super(data, kFoldData, interleavedSampling);
 	}
 
 	@Override
@@ -71,11 +71,12 @@ public class GsgpRun extends GpRun {
 	}
 
 	protected Individual buildCrossoverSemantics(Individual p1, Individual p2) {
+		Data prevData = new Data(previousTrainingData, previousUnseenData);
 		Individual offspring = new Individual();
 		// create a random tree and evaluate it
 		int maximumInitialDepth = 6;
 		Individual randomTree = grow(maximumInitialDepth);
-		randomTree.evaluate(data);
+		randomTree.evaluate(prevData);
 		// build training data semantics
 		double[] parent1TrainingSemantics = p1.getTrainingDataOutputs();
 		double[] parent2TrainingSemantics = p2.getTrainingDataOutputs();
