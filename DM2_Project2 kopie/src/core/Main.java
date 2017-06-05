@@ -31,33 +31,25 @@ public class Main {
 
 	public static int CURRENT_RUN;
 
-	protected static boolean seedInitialization = false;
+	protected static boolean seedInitialization = true;
 	protected static boolean seedMutatedInitialization = false;
-	protected static int numberOfSeedIterations = 100;
-	protected static double percentageOfSeedIndividuals = 5.0;
+	protected static int numberOfSeedIterations = 200;
+	protected static double percentageOfSeedIndividuals = 1.0;
 	protected static String executableAlgorithm = "GP"; // Either GP or GSGP
 	protected static boolean interleavedSampling = true;
-	protected static boolean kFold = false;
-	protected static int k = 10;
-	public static double kFoldProbability = 0.1;
 
-	protected static String dataFileName = "Kfold k = 10 kFoldProbability 0.2";
+	protected static String dataFileName = "Number of seed iterations 200";
 
 	// uniformCrossover,onePointCrossover,standardCrossover;
 	public static final String selectedCrossoverMethod = "standardCrossover";
 
 	public static void main(String[] args) {
-		// load training and unseen data
-		Data data;
-		Data kFoldData;
-
-		kFoldData = loadKfoldData(DATA_FILENAME);
-		data = loadData(DATA_FILENAME);
 
 		// run GP for a given number of runs
 		double[][] resultsPerRun = new double[4][NUMBER_OF_RUNS];
 		for (int i = 0; i < NUMBER_OF_RUNS; i++) {
-
+			// load training and unseen data
+			Data data = loadData(DATA_FILENAME);
 			System.out.printf("\n\t\t##### Run %d #####\n", i + 1);
 			CURRENT_RUN = i;
 
@@ -65,19 +57,19 @@ public class Main {
 
 			if (seedInitialization == false) {
 				if (executableAlgorithm.equals("GP")) {
-					GpRun gp = new GpRun(data, kFoldData, interleavedSampling);
+					GpRun gp = new GpRun(data, interleavedSampling);
 					bestFound = gp.evolve(NUMBER_OF_GENERATIONS);
 				} else if (executableAlgorithm.equals("GSGP")) {
-					GsgpRun gsgp = new GsgpRun(data, kFoldData, interleavedSampling);
+					GsgpRun gsgp = new GsgpRun(data, interleavedSampling);
 					bestFound = gsgp.evolve(NUMBER_OF_GENERATIONS);
 				}
 			} else {
 				if (executableAlgorithm.equals("GP")) {
-					GpRun seedGP = new GpRun(data, kFoldData, interleavedSampling);
+					GpRun seedGP = new GpRun(data, interleavedSampling);
 					Population seedPopulation = new Population();
 					seedGP.evolve(numberOfSeedIterations);
 					seedPopulation = seedGP.getPopulation();
-					GpRun gp = new GpRun(data, kFoldData, interleavedSampling);
+					GpRun gp = new GpRun(data, interleavedSampling);
 					if (seedMutatedInitialization == true) {
 						gp.population = getMutatedSeededPopulation(gp, data, seedPopulation);
 					} else {
@@ -85,11 +77,11 @@ public class Main {
 					}
 					bestFound = gp.evolve(NUMBER_OF_GENERATIONS);
 				} else if (executableAlgorithm.equals("GSGP")) {
-					GpRun seedGP = new GpRun(data, kFoldData, interleavedSampling);
+					GpRun seedGP = new GpRun(data, interleavedSampling);
 					Population seedPopulation = new Population();
 					seedGP.evolve(numberOfSeedIterations);
 					seedPopulation = seedGP.getPopulation();
-					GsgpRun gsgp = new GsgpRun(data, kFoldData, interleavedSampling);
+					GsgpRun gsgp = new GsgpRun(data, interleavedSampling);
 					if (seedMutatedInitialization == true) {
 						gsgp.population = getMutatedSeededPopulation(gsgp, data, seedPopulation);
 					} else {
@@ -125,23 +117,6 @@ public class Main {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-	}
-
-	private static Data loadKfoldData(String dataFilename) {
-		double[][] trainingData, unseenData;
-
-		if (SHUFFLE_AND_SPLIT) {
-			double[][] allData = readData(dataFilename + ".txt");
-			List<Integer> instances = Utils.shuffleInstances(allData.length);
-
-			trainingData = new double[allData.length][];
-			unseenData = new double[0][];
-
-			for (int i = 0; i < allData.length; i++) {
-				trainingData[i] = allData[instances.get(i)];
-			}
-		}
-		return new Data(trainingData, unseenData);
 	}
 
 	// Seeds the initial population with the best individual from the initial
