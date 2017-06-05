@@ -78,7 +78,7 @@ public class GpRun implements Serializable {
 		}
 		// adds all the constants to the terminal set
 		terminalSet = new ArrayList<ProgramElement>();
-		double[] constants = { -1.0, -0.75, -0.5, -0.25, 0.0, 0.25, 0.5, 0.75, 1.0 };
+		double[] constants = { -1, -0.75, -0.5, -0.25, 0.0, 0.25, 0.5, 0.75, 1 };
 		constantsLength = constants.length;
 		for (int i = 0; i < constantsLength; i++) {
 			terminalSet.add(new Constant(constants[i]));
@@ -549,9 +549,9 @@ public class GpRun implements Serializable {
 	protected Individual randomCrossover(Individual p1, Individual p2) {
 		Individual offspring;
 		double randsize = Math.random();
-		if (randsize > (0.75)) {
+		if (randsize > (0.9)) {
 			offspring = singleUniformCrossover(p1, p2);
-		} else if (randsize > 0.5 && randsize < 0.75) {
+		} else if (randsize > 0.8 && randsize < 0.9) {
 			offspring = singleOnePointCrossover(p1, p2);
 		} else {
 			offspring = applyStandardCrossover(p1, p2);

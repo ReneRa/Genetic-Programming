@@ -20,7 +20,7 @@ public class Main {
 
 	public static final String DATA_FILENAME = "dataset";
 	public static final int NUMBER_OF_RUNS = 10;
-	public static final int NUMBER_OF_GENERATIONS = 2000;
+	public static final int NUMBER_OF_GENERATIONS = 1000;
 	public static Population bestIndividualAtGenerations = new Population();
 
 	public static int[] stopAtGen = new int[NUMBER_OF_RUNS];
@@ -46,7 +46,7 @@ public class Main {
 
 	protected static String dataFileName = "Kfold k = 10 kFoldProbability 0.2";
 
-	// uniformCrossover,onePointCrossover,standardCrossover;
+	// uniformCrossover,onePointCrossover,standardCrossover,randomCrossover,adjustedStandardCrossover,singleOnePointCrossover,singleUniformCrossover;
 	public static final String selectedCrossoverMethod = "standardCrossover";
 
 	public static void main(String[] args) {
