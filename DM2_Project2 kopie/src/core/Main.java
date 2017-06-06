@@ -20,7 +20,7 @@ public class Main {
 
 	public static final String DATA_FILENAME = "dataset";
 	public static final int NUMBER_OF_RUNS = 10;
-	public static final int NUMBER_OF_GENERATIONS = 500;
+	public static final int NUMBER_OF_GENERATIONS = 1000;
 	public static Population bestIndividualAtGenerations = new Population();
 
 	public static int[] stopAtGen = new int[NUMBER_OF_RUNS];
@@ -31,25 +31,38 @@ public class Main {
 
 	public static int CURRENT_RUN;
 
-	protected static boolean seedInitialization = true;
+	protected static boolean seedInitialization = false;
 	protected static boolean seedMutatedInitialization = false;
-	protected static int numberOfSeedIterations = 200;
-	protected static double percentageOfSeedIndividuals = 1.0;
+	protected static int numberOfSeedIterations = 100;
+	protected static double percentageOfSeedIndividuals = 5.0;
 	protected static String executableAlgorithm = "GP"; // Either GP or GSGP
 	protected static boolean interleavedSampling = true;
+	protected static boolean kFold = false;
+	protected static int k = 10;
+	public static double kFoldProbability = 0.1;
 
-	protected static String dataFileName = "Number of seed iterations 200";
+	private static double[][] originalTrainingData;
+	private static double[][] originalUnseenData;
+
+	protected static String dataFileName = "Kfold k = 10 kFoldProbability 0.2";
 
 	// uniformCrossover,onePointCrossover,standardCrossover;
 	public static final String selectedCrossoverMethod = "standardCrossover";
 
 	public static void main(String[] args) {
+		// load training and unseen data
+		Data data;
+		Data kFoldData;
+
+		kFoldData = loadKfoldData(DATA_FILENAME);
+		data = loadData(DATA_FILENAME);
+		originalTrainingData = data.getTrainingData();
+		originalUnseenData = data.getUnseenData();
 
 		// run GP for a given number of runs
-		double[][] resultsPerRun = new double[4][NUMBER_OF_RUNS];
+		double[][] resultsPerRun = new double[5][NUMBER_OF_RUNS];
 		for (int i = 0; i < NUMBER_OF_RUNS; i++) {
-			// load training and unseen data
-			Data data = loadData(DATA_FILENAME);
+			data.trainingData = originalTrainingData;
 			System.out.printf("\n\t\t##### Run %d #####\n", i + 1);
 			CURRENT_RUN = i;
 
@@ -57,19 +70,19 @@ public class Main {
 
 			if (seedInitialization == false) {
 				if (executableAlgorithm.equals("GP")) {
-					GpRun gp = new GpRun(data, interleavedSampling);
+					GpRun gp = new GpRun(data, kFoldData, interleavedSampling);
 					bestFound = gp.evolve(NUMBER_OF_GENERATIONS);
 				} else if (executableAlgorithm.equals("GSGP")) {
-					GsgpRun gsgp = new GsgpRun(data, interleavedSampling);
+					GsgpRun gsgp = new GsgpRun(data, kFoldData, interleavedSampling);
 					bestFound = gsgp.evolve(NUMBER_OF_GENERATIONS);
 				}
 			} else {
 				if (executableAlgorithm.equals("GP")) {
-					GpRun seedGP = new GpRun(data, interleavedSampling);
+					GpRun seedGP = new GpRun(data, kFoldData, interleavedSampling);
 					Population seedPopulation = new Population();
 					seedGP.evolve(numberOfSeedIterations);
 					seedPopulation = seedGP.getPopulation();
-					GpRun gp = new GpRun(data, interleavedSampling);
+					GpRun gp = new GpRun(data, kFoldData, interleavedSampling);
 					if (seedMutatedInitialization == true) {
 						gp.population = getMutatedSeededPopulation(gp, data, seedPopulation);
 					} else {
@@ -77,11 +90,11 @@ public class Main {
 					}
 					bestFound = gp.evolve(NUMBER_OF_GENERATIONS);
 				} else if (executableAlgorithm.equals("GSGP")) {
-					GpRun seedGP = new GpRun(data, interleavedSampling);
+					GpRun seedGP = new GpRun(data, kFoldData, interleavedSampling);
 					Population seedPopulation = new Population();
 					seedGP.evolve(numberOfSeedIterations);
 					seedPopulation = seedGP.getPopulation();
-					GsgpRun gsgp = new GsgpRun(data, interleavedSampling);
+					GsgpRun gsgp = new GsgpRun(data, kFoldData, interleavedSampling);
 					if (seedMutatedInitialization == true) {
 						gsgp.population = getMutatedSeededPopulation(gsgp, data, seedPopulation);
 					} else {
@@ -97,6 +110,7 @@ public class Main {
 			resultsPerRun[1][i] = bestFound.getUnseenError();
 			resultsPerRun[2][i] = bestFound.getSize();
 			resultsPerRun[3][i] = bestFound.getDepth();
+			resultsPerRun[4][i] = bestFound.getTestError();
 			System.out.print("\nBest =>");
 			bestFound.print();
 			System.out.println();
@@ -108,6 +122,7 @@ public class Main {
 		System.out.printf("\n\t\t##### Results #####\n\n");
 		System.out.printf("Average training error:\t\t%.2f\n", Utils.getAverage(resultsPerRun[0]));
 		System.out.printf("Average unseen error:\t\t%.2f\n", Utils.getAverage(resultsPerRun[1]));
+		System.out.printf("Average test error:\t\t%.2f\n", Utils.getAverage(resultsPerRun[4]));
 		System.out.printf("Average size:\t\t\t%.2f\n", Utils.getAverage(resultsPerRun[2]));
 		System.out.printf("Average depth:\t\t\t%.2f\n", Utils.getAverage(resultsPerRun[3]));
 
@@ -117,6 +132,23 @@ public class Main {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
+	}
+
+	private static Data loadKfoldData(String dataFilename) {
+		double[][] trainingData, unseenData;
+
+		if (SHUFFLE_AND_SPLIT) {
+			double[][] allData = readData(dataFilename + ".txt");
+			List<Integer> instances = Utils.shuffleInstances(allData.length);
+
+			trainingData = new double[allData.length][];
+			unseenData = new double[0][];
+
+			for (int i = 0; i < allData.length; i++) {
+				trainingData[i] = allData[instances.get(i)];
+			}
+		}
+		return new Data(trainingData, unseenData);
 	}
 
 	// Seeds the initial population with the best individual from the initial
@@ -229,16 +261,18 @@ public class Main {
 	}
 
 	public static Data loadData(String dataFilename) {
-		double[][] trainingData, unseenData;
+		double[][] trainingData, unseenData, testData;
 
 		if (SHUFFLE_AND_SPLIT) {
 			double[][] allData = readData(dataFilename + ".txt");
 			List<Integer> instances = Utils.shuffleInstances(allData.length);
-			int trainingInstances = (int) Math.floor(0.7 * allData.length);
-			int unseenInstances = (int) Math.ceil(0.3 * allData.length);
+			int trainingInstances = (int) Math.floor(0.6 * allData.length);
+			int unseenInstances = (int) Math.ceil(0.2 * allData.length);
+			int testInstances = (int) Math.floor(0.2 * allData.length);
 
 			trainingData = new double[trainingInstances][];
 			unseenData = new double[unseenInstances][];
+			testData = new double[testInstances][];
 
 			for (int i = 0; i < trainingInstances; i++) {
 				trainingData[i] = allData[instances.get(i)];
@@ -247,11 +281,17 @@ public class Main {
 			for (int i = 0; i < unseenInstances; i++) {
 				unseenData[i] = allData[instances.get(trainingInstances + i)];
 			}
+
+			for (int i = 0; i < testInstances; i++) {
+				testData[i] = allData[instances.get(trainingInstances + unseenInstances + i)];
+			}
 		} else {
 			trainingData = readData(dataFilename + "_training.txt");
 			unseenData = readData(dataFilename + "_unseen.txt");
 		}
-		return new Data(trainingData, unseenData);
+		Data data = new Data(trainingData, unseenData);
+		data.setTestData(testData);
+		return data;
 	}
 
 	public static double[][] readData(String filename) {

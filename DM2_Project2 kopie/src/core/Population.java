@@ -25,6 +25,19 @@ public class Population implements Serializable {
 			}
 		}
 		return bestIndex;
+		
+//		int bestIndex = 0;
+//		double bestTrainingError = (4 * individuals.get(bestIndex).getTrainingError())
+//				+ individuals.get(bestIndex).getAbsErrorDiff();
+//		for (int i = 1; i < individuals.size(); i++) {
+//			double currentError = (4 * individuals.get(i).getTrainingError()) + individuals.get(i).getAbsErrorDiff();
+//			double actualError = individuals.get(i).getTrainingError();
+//			if (currentError < bestTrainingError) {
+//				bestTrainingError = actualError;
+//				bestIndex = i;
+//			}
+//		}
+//		return bestIndex;
 	}
 
 	// Returns the best N to be used as a seed population
