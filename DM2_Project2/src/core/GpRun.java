@@ -15,9 +15,21 @@ import programElements.ProtectedDivision;
 import programElements.SquareRoot;
 import programElements.Subtraction;
 import programElements.Terminal;
+import programElements.LogisticFunction;
+import programElements.Median;
+import programElements.randMult;
+import programElements.randDiv;
+import programElements.Max;
+import programElements.Min;
+import programElements.Power;
+import programElements.Root;
 import programElements.aSquare;
+import programElements.SquareRoot;
+import programElements.Log;
+import programElements.Log10;
+import programElements.Exp;
+import programElements.Expm1;
 import utils.Utils;
-import weka.core.Debug.Log;
 
 public class GpRun implements Serializable {
 	private static final long serialVersionUID = 7L;
@@ -37,6 +49,7 @@ public class GpRun implements Serializable {
 	protected double mutationProbability;
 	protected boolean printAtEachGeneration;
 	protected double probToGrowOperator;
+	protected double probOtherOperator;
 	protected int mutationOperator;
 	protected int maxRunsWithoutImprovements;
 
@@ -109,6 +122,10 @@ public class GpRun implements Serializable {
 		for (ProgramElement programElement : terminalSet) {
 			fullSet.add(programElement);
 		}
+		for (ProgramElement programElement : otherOperator) {
+			fullSet.add(programElement);
+		}
+		
 		populationSize = 250;
 		applyDepthLimit = true;
 		maximumDepth = 17;
@@ -240,11 +257,19 @@ public class GpRun implements Serializable {
 			ProgramElement randomTerminal = terminalSet.get(randomGenerator.nextInt(terminalSet.size()));
 			individual.addProgramElement(randomTerminal);
 		} else {
+			if (Math.random() < probOtherOperator){
 			Operator randomOperator = (Operator) functionSet.get(randomGenerator.nextInt(functionSet.size()));
 			individual.addProgramElement(randomOperator);
 			for (int i = 0; i < randomOperator.getArity(); i++) {
 				fullInner(individual, currentDepth + 1, maximumTreeDepth);
 			}
+			} else {
+				Operator randomOperator = (Operator) otherOperator.get(randomGenerator.nextInt(otherOperator.size()));
+				individual.addProgramElement(randomOperator);
+				for (int i = 0; i < randomOperator.getArity(); i++) {
+					fullInner(individual, currentDepth + 1, maximumTreeDepth);
+				}
+			}	
 		}
 	}
 
@@ -261,11 +286,19 @@ public class GpRun implements Serializable {
 			individual.addProgramElement(randomTerminal);
 		} else {
 			// equal probability of adding a terminal or an operator
-			if (randomGenerator.nextDouble() < probToGrowOperator) {
+			if (Math.random() < probToGrowOperator) {
+				if (randomGenerator.nextDouble() < probOtherOperator + 0.2){
 				Operator randomOperator = (Operator) functionSet.get(randomGenerator.nextInt(functionSet.size()));
 				individual.addProgramElement(randomOperator);
 				for (int i = 0; i < randomOperator.getArity(); i++) {
 					growInner(individual, currentDepth + 1, maximumTreeDepth, probToGrowOperator);
+				}
+				} else {
+					Operator randomOperator = (Operator) otherOperator.get(randomGenerator.nextInt(otherOperator.size()));
+					individual.addProgramElement(randomOperator);
+					for (int i = 0; i < randomOperator.getArity(); i++) {
+						growInner(individual, currentDepth + 1, maximumTreeDepth, probToGrowOperator);
+					}
 				}
 			} else {
 				ProgramElement randomTerminal = terminalSet.get(randomGenerator.nextInt(terminalSet.size()));
