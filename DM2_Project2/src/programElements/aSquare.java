@@ -12,8 +12,8 @@ public class aSquare extends Operator {
 	}
 	
 	public double performOperation(double... arguments) {
-				return Math.pow(arguments[0], 2);
-		//		return Utils.aPowerB(arguments[0], arguments[1]);
+				return Math.round(Math.pow(arguments[0], 2));
+
 	}
 	
 	public String toString() {
