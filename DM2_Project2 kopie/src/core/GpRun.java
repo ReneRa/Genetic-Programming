@@ -14,6 +14,17 @@ import programElements.ProgramElement;
 import programElements.ProtectedDivision;
 import programElements.Subtraction;
 import programElements.Terminal;
+import programElements.Median;
+import programElements.randMult;
+import programElements.randDiv;
+import programElements.Max;
+import programElements.Min;
+import programElements.Power;
+import programElements.Root;
+import programElements.aSquare;
+import programElements.SquareRoot;
+import programElements.Log;
+import programElements.Log10;
 import utils.Utils;
 
 public class GpRun implements Serializable {
@@ -48,6 +59,7 @@ public class GpRun implements Serializable {
 	protected int runsWithoutImprovement;
 	protected boolean interleavedSampling;
 	protected double chooseSingleSubSampleProbability = 0.5;
+	protected double probOtherOperator;
 	protected double subSampleSize = 0.35;
 
 	public GpRun(Data data, Data kFoldData, boolean interleavedSampling) {
@@ -66,12 +78,18 @@ public class GpRun implements Serializable {
 		functionSet.add(new Subtraction());
 		functionSet.add(new Multiplication());
 		functionSet.add(new ProtectedDivision());
-		// functionSet.add(new Exp());
-		// functionSet.add(new Expm1());
-		// functionSet.add(new LogisticFunction());
-		// functionSet.add(new randDiv());
-		// functionSet.add(new randMult());
-		// functionSet.add(new aSquare());
+		
+		otherOperator = new ArrayList<ProgramElement>();
+		otherOperator.add(new Min());
+		otherOperator.add(new Max());
+		otherOperator.add(new Median());
+		otherOperator.add(new Root());
+		otherOperator.add(new Power());
+		otherOperator.add(new aSquare());
+		otherOperator.add(new SquareRoot());
+		otherOperator.add(new Log());
+		otherOperator.add(new Log10());
+		
 		randomGenerator = new Random();
 		if (this.interleavedSampling == true) {
 			data.trainingData = getSubSample(originalTrainingData, chooseSingleSubSampleProbability);
@@ -101,6 +119,7 @@ public class GpRun implements Serializable {
 		crossoverProbability = 0.9;
 		mutationProbability = 0.1;
 		probToGrowOperator = 0.5;
+		probOtherOperator = 0.7;
 		printAtEachGeneration = true;
 		mutationOperator = 1;
 		maxNumberOfMutations = 0.05;
@@ -228,11 +247,19 @@ public class GpRun implements Serializable {
 			ProgramElement randomTerminal = terminalSet.get(randomGenerator.nextInt(terminalSet.size()));
 			individual.addProgramElement(randomTerminal);
 		} else {
+			if (Math.random() < probOtherOperator){
 			Operator randomOperator = (Operator) functionSet.get(randomGenerator.nextInt(functionSet.size()));
 			individual.addProgramElement(randomOperator);
 			for (int i = 0; i < randomOperator.getArity(); i++) {
 				fullInner(individual, currentDepth + 1, maximumTreeDepth);
 			}
+			} else {
+				Operator randomOperator = (Operator) otherOperator.get(randomGenerator.nextInt(otherOperator.size()));
+				individual.addProgramElement(randomOperator);
+				for (int i = 0; i < randomOperator.getArity(); i++) {
+					fullInner(individual, currentDepth + 1, maximumTreeDepth);
+				}
+			}	
 		}
 	}
 
@@ -243,17 +270,25 @@ public class GpRun implements Serializable {
 		return individual;
 	}
 
-	protected void growInner(Individual individual, int currentDepth, int maximumTreeDepth, double probToGrowOperator) {
+		protected void growInner(Individual individual, int currentDepth, int maximumTreeDepth, double probToGrowOperator) {
 		if (currentDepth == maximumTreeDepth) {
 			ProgramElement randomTerminal = terminalSet.get(randomGenerator.nextInt(terminalSet.size()));
 			individual.addProgramElement(randomTerminal);
 		} else {
 			// equal probability of adding a terminal or an operator
-			if (randomGenerator.nextDouble() < probToGrowOperator) {
+			if (Math.random() < probToGrowOperator) {
+				if (randomGenerator.nextDouble() < probOtherOperator + 0.2){
 				Operator randomOperator = (Operator) functionSet.get(randomGenerator.nextInt(functionSet.size()));
 				individual.addProgramElement(randomOperator);
 				for (int i = 0; i < randomOperator.getArity(); i++) {
 					growInner(individual, currentDepth + 1, maximumTreeDepth, probToGrowOperator);
+				}
+				} else {
+					Operator randomOperator = (Operator) otherOperator.get(randomGenerator.nextInt(otherOperator.size()));
+					individual.addProgramElement(randomOperator);
+					for (int i = 0; i < randomOperator.getArity(); i++) {
+						growInner(individual, currentDepth + 1, maximumTreeDepth, probToGrowOperator);
+					}
 				}
 			} else {
 				ProgramElement randomTerminal = terminalSet.get(randomGenerator.nextInt(terminalSet.size()));
@@ -311,14 +346,17 @@ public class GpRun implements Serializable {
 					}
 				}
 				// apply mutation
-				// if (randomGenerator.nextDouble() < mutationProbability)
 				else {
-					// if (p1.getSize() < 300000 ) {
-					newIndividual = applyStandardMutation(p1);
-					// newIndividual = applyNodeFlipMutation(p1);
-					// } else {
-					// newIndividual = applyConstantMutation(p1);
-					// }
+					double mutOp = randomGenerator.nextDouble();
+					if (mutOp < 0.5) {
+						newIndividual = applyStandardMutation(p1);
+					} else if (mutOp < 0.7) {
+						newIndividual = applyPointMutation(p1);
+					} else if (mutOp < 0.9) {
+						newIndividual = applyNodeFlipMutation(p1);
+					} else {
+						newIndividual = applyConstantMutation(p1);
+					}
 				}
 				if (newIndividual1 == null & newIndividual2 == null) {
 					if (applyDepthLimit && newIndividual.getDepth() > maximumDepth) {
@@ -600,6 +638,35 @@ public class GpRun implements Serializable {
 		return offspring;
 	}
 
+	protected Individual applyPointMutation(Individual p) {
+		Individual offspring = p.deepCopy();
+		double nodeMutProb = 0.05;
+		// go over each node and mutate it with a pre-specified probability
+		for (int i = 0; i < offspring.getSize(); i++) {
+			if (randomGenerator.nextDouble() < nodeMutProb) {
+				ProgramElement elementAtI = offspring.getProgramElementAtIndex(i);
+				if (elementAtI instanceof InputVariable) {
+					ProgramElement newNodeElement = terminalSet
+							.get(randomGenerator.nextInt(terminalSet.size() - constantsLength) + constantsLength);
+					offspring.setProgramElementAtIndex(newNodeElement, i);
+				} else if (elementAtI instanceof Constant) {
+					ProgramElement newNodeElement = terminalSet.get(randomGenerator.nextInt(constantsLength));
+					offspring.setProgramElementAtIndex(newNodeElement, i);
+				} else {
+					Operator operator = (Operator) offspring.getProgramElementAtIndex(i);
+					int ar = operator.getArity();
+					Operator newOp = (Operator) functionSet.get(randomGenerator.nextInt(functionSet.size()));
+					while (!(ar == newOp.getArity())) {
+						newOp = (Operator) functionSet.get(randomGenerator.nextInt(functionSet.size()));
+					}
+					offspring.setProgramElementAtIndex(newOp, i);
+				}
+			}
+		}
+		offspring.calculateDepth();
+		return offspring;
+	}
+	
 	protected Individual applyNodeFlipMutation(Individual p) {
 		Individual offspring = p.deepCopy();
 		double nodeMutProb = 0.05;
@@ -650,12 +717,17 @@ public class GpRun implements Serializable {
 		int mutationPoint = randomGenerator.nextInt(p.getSize());
 		Individual offspring = p.deepCopy();
 		ProgramElement elementAtMP = offspring.getProgramElementAtIndex(mutationPoint);
-		while (!(elementAtMP instanceof Constant)) {
+		while (!(elementAtMP instanceof Terminal)) {
 			mutationPoint = randomGenerator.nextInt(offspring.getSize());
 			elementAtMP = offspring.getProgramElementAtIndex(mutationPoint);
 		}
-		Constant c = (Constant) offspring.getProgramElementAtIndex(mutationPoint);
-		c.setValue(c.getValue() + randomGenerator.nextGaussian() * c.getValue());
+		Constant c = (Constant) terminalSet.get(randomGenerator.nextInt(constantsLength));
+		if (elementAtMP instanceof Constant) {
+			c = (Constant) offspring.getProgramElementAtIndex(mutationPoint);
+			c.setValue(c.getValue() + randomGenerator.nextGaussian() * c.getValue());
+		} else {
+			c.setValue(c.getValue() + randomGenerator.nextGaussian() * c.getValue());
+		}
 		offspring.setProgramElementAtIndex(c, mutationPoint);
 		return offspring;
 	}
