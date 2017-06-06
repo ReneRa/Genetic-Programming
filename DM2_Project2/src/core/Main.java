@@ -19,9 +19,10 @@ public class Main {
 	// public static final boolean SHUFFLE_AND_SPLIT = false;
 
 	public static final String DATA_FILENAME = "dataset";
-	public static final int NUMBER_OF_RUNS = 1;
 
+	public static final int NUMBER_OF_RUNS = 1;
 	public static final int NUMBER_OF_GENERATIONS = 1000;
+
 	public static Population bestIndividualAtGenerations = new Population();
 
 	public static int[] stopAtGen = new int[NUMBER_OF_RUNS];
@@ -48,6 +49,7 @@ public class Main {
 	protected static String dataFileName = "CHANGE THIS NAME. EAT CARROTS.";
 
 	// uniformCrossover,onePointCrossover,standardCrossover,randomCrossover,adjustedStandardCrossover,singleOnePointCrossover,singleUniformCrossover;
+
 	public static String selectedCrossoverMethod = "randomCrossover";
 
 	public static void main(String[] args) {
