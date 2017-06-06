@@ -12,21 +12,12 @@ import programElements.Multiplication;
 import programElements.Operator;
 import programElements.ProgramElement;
 import programElements.ProtectedDivision;
+import programElements.SquareRoot;
 import programElements.Subtraction;
 import programElements.Terminal;
-import programElements.LogisticFunction;
-import programElements.Median;
-import programElements.randMult;
-import programElements.randDiv;
-import programElements.Max;
-import programElements.Min;
-import programElements.Power;
-import programElements.Root;
 import programElements.aSquare;
-import programElements.SquareRoot;
-import programElements.Log;
-import programElements.Log10;
 import utils.Utils;
+import weka.core.Debug.Log;
 
 public class GpRun implements Serializable {
 	private static final long serialVersionUID = 7L;
@@ -46,7 +37,6 @@ public class GpRun implements Serializable {
 	protected double mutationProbability;
 	protected boolean printAtEachGeneration;
 	protected double probToGrowOperator;
-	protected double probOtherOperator;
 	protected int mutationOperator;
 	protected int maxRunsWithoutImprovements;
 
@@ -60,8 +50,9 @@ public class GpRun implements Serializable {
 	protected double maxNumberOfMutations;
 	protected int runsWithoutImprovement;
 	protected boolean interleavedSampling;
-	protected double chooseSingleSubSampleProbability = 0.75;
+	protected double chooseSingleSubSampleProbability = 0.5;
 	protected double subSampleSize = 0.35;
+	protected boolean kFold = true;
 
 	public GpRun(Data data, Data kFoldData, boolean interleavedSampling) {
 		this.data = data;
@@ -79,7 +70,7 @@ public class GpRun implements Serializable {
 		functionSet.add(new Subtraction());
 		functionSet.add(new Multiplication());
 		functionSet.add(new ProtectedDivision());
-		
+
 		otherOperator = new ArrayList<ProgramElement>();
 		otherOperator.add(new Min());
 		otherOperator.add(new Max());
@@ -90,15 +81,18 @@ public class GpRun implements Serializable {
 		otherOperator.add(new SquareRoot());
 		otherOperator.add(new Log());
 		otherOperator.add(new Log10());
-		
+
 		randomGenerator = new Random();
-		
+
 		if (this.interleavedSampling == true) {
 			data.trainingData = getSubSample(originalTrainingData, chooseSingleSubSampleProbability);
 		}
 		// adds all the constants to the terminal set
 		terminalSet = new ArrayList<ProgramElement>();
-		double[] constants = { -1, -0.75, -0.5, -0.25, 0.0, 0.25, 0.5, 0.75, 1 };
+		// double[] constants = { -1, -0.75, -0.5, -0.25, 0.0, 0.25, 0.5, 0.75,
+		// 1 };
+		// double[] constants = { -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5 };
+		double[] constants = { 0, 0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2, 2.25, 5 };
 		constantsLength = constants.length;
 		for (int i = 0; i < constantsLength; i++) {
 			terminalSet.add(new Constant(constants[i]));
@@ -115,17 +109,12 @@ public class GpRun implements Serializable {
 		for (ProgramElement programElement : terminalSet) {
 			fullSet.add(programElement);
 		}
-		for (ProgramElement programElement : otherOperator) {
-			fullSet.add(programElement);
-		}
-		
-		populationSize = 100;
+		populationSize = 250;
 		applyDepthLimit = true;
 		maximumDepth = 17;
 		crossoverProbability = 0.90;
 		mutationProbability = 0.1;
 		probToGrowOperator = 0.5;
-		probOtherOperator = 0.8;
 		printAtEachGeneration = true;
 		mutationOperator = 1;
 		maxNumberOfMutations = 0.05;
@@ -136,11 +125,9 @@ public class GpRun implements Serializable {
 		// initialize and evaluate po..pulation
 		rampedHalfAndHalfInitialization();
 		for (int i = 0; i < populationSize; i++) {
-			if (Main.kFold == true & randomGenerator.nextDouble() < Main.kFoldProbability) {
-				kFoldEvaluation(originalKFoldTrainingData, population.getIndividual(i));
-			} else {
-				population.getIndividual(i).evaluate(data);
-			}
+
+			population.getIndividual(i).evaluate(data);
+
 		}
 		updateCurrentBest();
 		globalBest = getCurrentBest();
@@ -253,19 +240,11 @@ public class GpRun implements Serializable {
 			ProgramElement randomTerminal = terminalSet.get(randomGenerator.nextInt(terminalSet.size()));
 			individual.addProgramElement(randomTerminal);
 		} else {
-			if (Math.random() < probOtherOperator){
 			Operator randomOperator = (Operator) functionSet.get(randomGenerator.nextInt(functionSet.size()));
 			individual.addProgramElement(randomOperator);
 			for (int i = 0; i < randomOperator.getArity(); i++) {
 				fullInner(individual, currentDepth + 1, maximumTreeDepth);
 			}
-			} else {
-				Operator randomOperator = (Operator) otherOperator.get(randomGenerator.nextInt(otherOperator.size()));
-				individual.addProgramElement(randomOperator);
-				for (int i = 0; i < randomOperator.getArity(); i++) {
-					fullInner(individual, currentDepth + 1, maximumTreeDepth);
-				}
-			}	
 		}
 	}
 
@@ -282,19 +261,11 @@ public class GpRun implements Serializable {
 			individual.addProgramElement(randomTerminal);
 		} else {
 			// equal probability of adding a terminal or an operator
-			if (Math.random() < probToGrowOperator) {
-				if (randomGenerator.nextDouble() < probOtherOperator + 0.2){
+			if (randomGenerator.nextDouble() < probToGrowOperator) {
 				Operator randomOperator = (Operator) functionSet.get(randomGenerator.nextInt(functionSet.size()));
 				individual.addProgramElement(randomOperator);
 				for (int i = 0; i < randomOperator.getArity(); i++) {
 					growInner(individual, currentDepth + 1, maximumTreeDepth, probToGrowOperator);
-				}
-				} else {
-					Operator randomOperator = (Operator) otherOperator.get(randomGenerator.nextInt(otherOperator.size()));
-					individual.addProgramElement(randomOperator);
-					for (int i = 0; i < randomOperator.getArity(); i++) {
-						growInner(individual, currentDepth + 1, maximumTreeDepth, probToGrowOperator);
-					}
 				}
 			} else {
 				ProgramElement randomTerminal = terminalSet.get(randomGenerator.nextInt(terminalSet.size()));
@@ -313,7 +284,7 @@ public class GpRun implements Serializable {
 			data.trainingData = originalTrainingData;
 			data.unseenData = originalUnseenData;
 			boolean useKFold = false;
-			if (randomGenerator.nextDouble() < Main.kFoldProbability) {
+			if (randomGenerator.nextDouble() < Main.kFoldProbability & kFold) {
 				useKFold = true;
 			}
 			if (this.interleavedSampling == true) {
@@ -391,7 +362,7 @@ public class GpRun implements Serializable {
 					if (applyDepthLimit && newIndividual.getDepth() > maximumDepth) {
 						newIndividual = p1;
 					} else {
-						if (Main.kFold == true & useKFold) {
+						if (useKFold) {
 							kFoldEvaluation(originalKFoldTrainingData, newIndividual);
 						} else {
 							newIndividual.evaluate(data);
@@ -402,7 +373,7 @@ public class GpRun implements Serializable {
 					if (applyDepthLimit && newIndividual1.getDepth() > maximumDepth) {
 						newIndividual1 = p1;
 					} else {
-						if (Main.kFold == true & useKFold) {
+						if (useKFold) {
 							kFoldEvaluation(originalKFoldTrainingData, newIndividual1);
 						} else {
 							newIndividual1.evaluate(data);
@@ -419,7 +390,7 @@ public class GpRun implements Serializable {
 					if (applyDepthLimit && newIndividual1.getDepth() > maximumDepth) {
 						newIndividual1 = p1;
 					} else {
-						if (Main.kFold == true & useKFold) {
+						if (useKFold) {
 							kFoldEvaluation(originalKFoldTrainingData, newIndividual1);
 						} else {
 							newIndividual1.evaluate(data);
@@ -428,7 +399,7 @@ public class GpRun implements Serializable {
 					if (applyDepthLimit && newIndividual2.getDepth() > maximumDepth) {
 						newIndividual2 = p2;
 					} else {
-						if (Main.kFold == true & useKFold) {
+						if (useKFold) {
 							kFoldEvaluation(originalKFoldTrainingData, newIndividual2);
 						} else {
 							newIndividual2.evaluate(data);
@@ -1012,5 +983,9 @@ public class GpRun implements Serializable {
 
 	public void setPrintAtEachGeneration(boolean printAtEachGeneration) {
 		this.printAtEachGeneration = printAtEachGeneration;
+	}
+
+	public void setKFold(boolean kFold) {
+		this.kFold = kFold;
 	}
 }

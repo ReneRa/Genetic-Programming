@@ -33,15 +33,14 @@ public class Main {
 
 	public static int CURRENT_RUN;
 
-	protected static boolean seedInitialization = false;
-	protected static boolean seedMutatedInitialization = false;
-	protected static int numberOfSeedIterations = 1000;
+	protected static boolean seedInitialization = true;
+	protected static boolean seedMutatedInitialization = true;
+	protected static int numberOfSeedIterations = 500;
 	protected static double percentageOfSeedIndividuals = 5.0;
-	protected static String executableAlgorithm = "GP"; // Either GP or GSGP
+	protected static String executableAlgorithm = "GSGP"; // Either GP or GSGP
 	protected static boolean interleavedSampling = true;
-	protected static boolean kFold = false;
 	protected static int k = 10;
-	public static double kFoldProbability = 0.1;
+	public static double kFoldProbability = 0;
 
 	private static double[][] originalTrainingData;
 	private static double[][] originalUnseenData;
@@ -104,9 +103,10 @@ public class Main {
 
 					seedPopulation = seedGP.getPopulation();
 					GsgpRun gsgp = new GsgpRun(data, kFoldData, false);
+					gsgp.setBoundedMutation(true);
 					gsgp.setCrossoverProbability(0);
 					gsgp.mutationProbability = 1;
-
+					gsgp.setKFold(false);
 					// gsgp.setApplyDepthLimit(true);
 					// gsgp.setMaximumDepth(1000);
 					if (seedMutatedInitialization == true) {
