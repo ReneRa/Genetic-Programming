@@ -91,6 +91,8 @@ public class GpRun implements Serializable {
 		otherOperator.add(new Log());
 		otherOperator.add(new Log10());
 		
+		randomGenerator = new Random();
+		
 		if (this.interleavedSampling == true) {
 			data.trainingData = getSubSample(originalTrainingData, chooseSingleSubSampleProbability);
 		}
