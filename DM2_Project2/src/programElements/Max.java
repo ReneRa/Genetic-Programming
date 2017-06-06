@@ -1,21 +1,17 @@
 package programElements;
 
-//import utils.Utils;
-import java.lang.Math;
-
-public class aSquare extends Operator {
-
+public class Max extends Operator{
 	private static final long serialVersionUID = 7L;
 	
-	public aSquare(){
-		super (1);
+	public Max(){
+		super (2);
 	}
 	
 	public double performOperation(double... arguments) {
-				return Math.pow(arguments[0], 2);
+				return Math.max(arguments[0], arguments[1]);
 	}
 	
 	public String toString() {
-		return "^2";
+		return "max";
 	}
 }

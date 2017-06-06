@@ -1,21 +1,19 @@
 package programElements;
 
-//import utils.Utils;
-import java.lang.Math;
-
-public class aSquare extends Operator {
+public class Log10 extends Operator{
 
 	private static final long serialVersionUID = 7L;
 	
-	public aSquare(){
+	public Log10(){
 		super (1);
 	}
 	
 	public double performOperation(double... arguments) {
-				return Math.pow(arguments[0], 2);
+		return Math.round(Math.log10(arguments[0]));
 	}
 	
 	public String toString() {
-		return "^2";
+		return "log10";
 	}
+	
 }

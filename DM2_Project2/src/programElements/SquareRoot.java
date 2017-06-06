@@ -12,6 +12,7 @@ public class SquareRoot extends Operator{
 	}
 	
 	public double performOperation(double... arguments) {
+//		return Utils.squareRoot(arguments[0]);
 		return Math.round(Math.sqrt(arguments[0]));
 	}	
 	
