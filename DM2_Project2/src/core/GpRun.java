@@ -38,7 +38,7 @@ public class GpRun implements Serializable {
 	protected double[][] originalKFoldTrainingData;
 	protected double[][] previousTrainingData;
 	protected double[][] previousUnseenData;
-	protected ArrayList<ProgramElement> functionSet, terminalSet, fullSet;
+	protected ArrayList<ProgramElement> functionSet, otherOperator, terminalSet, fullSet;
 	protected int populationSize;
 	protected boolean applyDepthLimit;
 	protected int maximumDepth;
