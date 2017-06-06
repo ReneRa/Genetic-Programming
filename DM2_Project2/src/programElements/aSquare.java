@@ -17,6 +17,6 @@ public class aSquare extends Operator {
 	}
 	
 	public String toString() {
-		return "a^2";
+		return "^2";
 	}
 }
