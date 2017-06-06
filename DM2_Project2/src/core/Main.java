@@ -19,7 +19,7 @@ public class Main {
 	// public static final boolean SHUFFLE_AND_SPLIT = false;
 
 	public static final String DATA_FILENAME = "dataset";
-	public static final int NUMBER_OF_RUNS = 10;
+	public static final int NUMBER_OF_RUNS = 1;
 
 	public static final int NUMBER_OF_GENERATIONS = 1000;
 	public static Population bestIndividualAtGenerations = new Population();
@@ -34,7 +34,7 @@ public class Main {
 
 	protected static boolean seedInitialization = false;
 	protected static boolean seedMutatedInitialization = false;
-	protected static int numberOfSeedIterations = 100;
+	protected static int numberOfSeedIterations = 1000;
 	protected static double percentageOfSeedIndividuals = 5.0;
 	protected static String executableAlgorithm = "GP"; // Either GP or GSGP
 	protected static boolean interleavedSampling = true;
@@ -45,10 +45,10 @@ public class Main {
 	private static double[][] originalTrainingData;
 	private static double[][] originalUnseenData;
 
-	protected static String dataFileName = "2 * overfitting error";
+	protected static String dataFileName = "CHANGE THIS NAME. EAT CARROTS.";
 
 	// uniformCrossover,onePointCrossover,standardCrossover,randomCrossover,adjustedStandardCrossover,singleOnePointCrossover,singleUniformCrossover;
-	public static final String selectedCrossoverMethod = "standardCrossover";
+	public static String selectedCrossoverMethod = "randomCrossover";
 
 	public static void main(String[] args) {
 		// load training and unseen data
@@ -91,11 +91,22 @@ public class Main {
 					}
 					bestFound = gp.evolve(NUMBER_OF_GENERATIONS);
 				} else if (executableAlgorithm.equals("GSGP")) {
+					selectedCrossoverMethod = "randomCrossover";
 					GpRun seedGP = new GpRun(data, kFoldData, interleavedSampling);
 					Population seedPopulation = new Population();
 					seedGP.evolve(numberOfSeedIterations);
+
+					selectedCrossoverMethod = "standardCrossover";
+					data.trainingData = originalTrainingData;
+					data.unseenData = originalUnseenData;
+
 					seedPopulation = seedGP.getPopulation();
-					GsgpRun gsgp = new GsgpRun(data, kFoldData, interleavedSampling);
+					GsgpRun gsgp = new GsgpRun(data, kFoldData, false);
+					gsgp.setCrossoverProbability(0);
+					gsgp.mutationProbability = 1;
+
+					// gsgp.setApplyDepthLimit(true);
+					// gsgp.setMaximumDepth(1000);
 					if (seedMutatedInitialization == true) {
 						gsgp.population = getMutatedSeededPopulation(gsgp, data, seedPopulation);
 					} else {
@@ -267,9 +278,9 @@ public class Main {
 		if (SHUFFLE_AND_SPLIT) {
 			double[][] allData = readData(dataFilename + ".txt");
 			List<Integer> instances = Utils.shuffleInstances(allData.length);
-			int trainingInstances = (int) Math.floor(0.6 * allData.length);
-			int unseenInstances = (int) Math.ceil(0.2 * allData.length);
-			int testInstances = (int) Math.floor(0.2 * allData.length);
+			int trainingInstances = (int) Math.floor(0.7 * allData.length);
+			int unseenInstances = (int) Math.ceil(0.3 * allData.length);
+			int testInstances = (int) Math.floor(0.0 * allData.length);
 
 			trainingData = new double[trainingInstances][];
 			unseenData = new double[unseenInstances][];

@@ -47,8 +47,8 @@ public class GpRun implements Serializable {
 	protected double maxNumberOfMutations;
 	protected int runsWithoutImprovement;
 	protected boolean interleavedSampling;
-	protected double chooseSingleSubSampleProbability = 0.5;
-	protected double subSampleSize = 0.01;
+	protected double chooseSingleSubSampleProbability = 0.75;
+	protected double subSampleSize = 0.35;
 
 	public GpRun(Data data, Data kFoldData, boolean interleavedSampling) {
 		this.data = data;
@@ -169,7 +169,7 @@ public class GpRun implements Serializable {
 		} else {
 			double[][] trainingSubSample;
 			List<Integer> instances = Utils.shuffleInstances(originalTrainingData.length);
-			int subSampleInstances = (int) Math.ceil(0.6 * originalTrainingData.length);
+			int subSampleInstances = (int) Math.ceil(subSampleSize * originalTrainingData.length);
 			trainingSubSample = new double[subSampleInstances][];
 			for (int i = 0; i < subSampleInstances; i++) {
 				trainingSubSample[i] = originalTrainingData[instances.get(i)];
@@ -381,7 +381,11 @@ public class GpRun implements Serializable {
 			stopCriteria = updateStopCriteria(getCurrentBest(), getGlobalBest());
 		}
 		for (int i = 0; i < population.getSize(); i++) {
-			population.getIndividual(i).evaluateOnTestData(data);
+			data.trainingData = originalTrainingData;
+			data.unseenData = originalUnseenData;
+			population.getIndividual(i).evaluate(data);
+			updateCurrentBest();
+			// population.getIndividual(i).evaluateOnTestData(data);
 		}
 		return getCurrentBest();
 		// return getGlobalBest();
@@ -390,18 +394,18 @@ public class GpRun implements Serializable {
 	protected void printState() {
 		if (printAtEachGeneration) {
 
-			System.out.println("\nGeneration:\t\t" + currentGeneration);
-			System.out.printf(
-					"Training error:\t\t%.2f\nUnseen error:\t\t%.2f\nTesterror:\t\t%.2f\nSize:\t\t\t%d\nDepth:\t\t\t%d\n",
-					currentBest.getTrainingError(), currentBest.getUnseenError(), currentBest.getTestError(),
-					currentBest.getSize(), currentBest.getDepth());
-
 			// System.out.println("\nGeneration:\t\t" + currentGeneration);
-			// System.out.printf("Training
-			// error:\t\t%.2f\nUnseenerror:\t\t%.2f\nSize:\t\t\t%d\nDepth:\t\t\t%d\n",
+			// System.out.printf(
+			// "Training error:\t\t%.2f\nUnseen
+			// error:\t\t%.2f\nTesterror:\t\t%.2f\nSize:\t\t\t%d\nDepth:\t\t\t%d\n",
 			// currentBest.getTrainingError(), currentBest.getUnseenError(),
-			// currentBest.getSize(),
-			// currentBest.getDepth());
+			// currentBest.getTestError(),
+			// currentBest.getSize(), currentBest.getDepth());
+
+			System.out.println("\nGeneration:\t\t" + currentGeneration);
+			System.out.printf("Trainingerror:\t\t%.2f\nUnseenerror:\t\t%.2f\nSize:\t\t\t%d\nDepth:\t\t\t%d\n",
+					currentBest.getTrainingError(), currentBest.getUnseenError(), currentBest.getSize(),
+					currentBest.getDepth());
 		}
 	}
 

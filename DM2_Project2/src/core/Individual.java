@@ -37,7 +37,7 @@ public class Individual implements Serializable {
 	public void evaluate(Data data) {
 		evaluateOnTrainingData(data);
 		evaluateOnUnseenData(data);
-		evaluateOnTestData(data);
+		// evaluateOnTestData(data);
 		absDiffTrUnError = Math.abs(this.unseenError - this.trainingError);
 	}
 
